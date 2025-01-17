@@ -1,3 +1,5 @@
+`ifndef CONFIG_SV
+`define CONFIG_SV
 
 // Branch Target Buffer
 `define BTB_ENTRIES 4096
@@ -68,7 +70,7 @@ parameter FETCH_WORDS = 1 << (`FSIZE_E - 1);
 
 `define ENABLE_EXT_MMIO 1
 `define EXT_MMIO_START_ADDR 32'h1000_0000
-`define EXT_MMIO_END_ADDR   32'h1100_0000
+`define EXT_MMIO_END_ADDR 32'h1100_0000
 
 `define IS_MEM_PMA(addr) \
     ((addr) >= 32'h80000000 && (addr) < 32'h90000000)
@@ -104,38 +106,54 @@ parameter NUM_CT_READS = NUM_AGUS + 1; // one port for stores
 
 parameter SQ_DEQ_PORTS = 2;
 
-parameter int PORT_IQ_SIZE[NUM_PORTS-1:0] = '{
-    8,
-    8,
-    8,
-    8,
-    8
-};
+parameter int PORT_IQ_SIZE[NUM_PORTS-1:0] = '{8, 8, 8, 8, 8};
 
-localparam[15:0] FU_INT_OH      = 1 << FU_INT;
-localparam[15:0] FU_BRANCH_OH   = 1 << FU_BRANCH;
-localparam[15:0] FU_BITMANIP_OH = 1 << FU_BITMANIP;
-localparam[15:0] FU_AGU_OH      = 1 << FU_AGU;
-localparam[15:0] FU_MUL_OH      = 1 << FU_MUL;
-localparam[15:0] FU_DIV_OH      = 1 << FU_DIV;
-localparam[15:0] FU_FPU_OH      = 1 << FU_FPU;
-localparam[15:0] FU_FMUL_OH     = 1 << FU_FMUL;
-localparam[15:0] FU_FDIV_OH     = 1 << FU_FDIV;
-localparam[15:0] FU_RN_OH       = 1 << FU_RN;
-localparam[15:0] FU_ATOMIC_OH   = 1 << FU_ATOMIC;
-localparam[15:0] FU_CSR_OH      = 1 << FU_CSR;
-localparam[15:0] FU_TRAP_OH     = 1 << FU_TRAP;
+localparam [15:0] FU_INT_OH = 1 << FU_INT;
+localparam [15:0] FU_BRANCH_OH = 1 << FU_BRANCH;
+localparam [15:0] FU_BITMANIP_OH = 1 << FU_BITMANIP;
+localparam [15:0] FU_AGU_OH = 1 << FU_AGU;
+localparam [15:0] FU_MUL_OH = 1 << FU_MUL;
+localparam [15:0] FU_DIV_OH = 1 << FU_DIV;
+localparam [15:0] FU_FPU_OH = 1 << FU_FPU;
+localparam [15:0] FU_FMUL_OH = 1 << FU_FMUL;
+localparam [15:0] FU_FDIV_OH = 1 << FU_FDIV;
+localparam [15:0] FU_RN_OH = 1 << FU_RN;
+localparam [15:0] FU_ATOMIC_OH = 1 << FU_ATOMIC;
+localparam [15:0] FU_CSR_OH = 1 << FU_CSR;
+localparam [15:0] FU_TRAP_OH = 1 << FU_TRAP;
 
 // verilator lint_off WIDTHEXPAND
-parameter logic[15:0] PORT_FUS[NUM_PORTS-1:0] = '{
+parameter logic [15:0] PORT_FUS[NUM_PORTS-1:0] = '{
 
     // NUM_AGUS x AGU Ports
-    FU_AGU_OH|FU_ATOMIC_OH,
-    FU_AGU_OH|FU_ATOMIC_OH,
+    FU_AGU_OH
+    |
+    FU_ATOMIC_OH,
+    FU_AGU_OH | FU_ATOMIC_OH,
 
     // NUM_ALUS x ALU Ports
-    FU_INT_OH|FU_MUL_OH|FU_BITMANIP_OH,
-    FU_INT_OH|FU_BRANCH_OH|FU_MUL_OH/*|FU_FDIV_OH|FU_FMUL_OH*/|FU_ATOMIC_OH,
-    FU_INT_OH|FU_BRANCH_OH|FU_DIV_OH/*|FU_FPU_OH*/|FU_CSR_OH|FU_ATOMIC_OH
+    FU_INT_OH
+    |
+    FU_MUL_OH
+    |
+    FU_BITMANIP_OH,
+    FU_INT_OH
+    |
+    FU_BRANCH_OH
+    |
+    FU_MUL_OH  /*|FU_FDIV_OH|FU_FMUL_OH*/
+    |
+    FU_ATOMIC_OH,
+    FU_INT_OH
+    |
+    FU_BRANCH_OH
+    |
+    FU_DIV_OH  /*|FU_FPU_OH*/
+    |
+    FU_CSR_OH
+    |
+    FU_ATOMIC_OH
 };
 // verilator lint_on WIDTHEXPAND
+
+`endif

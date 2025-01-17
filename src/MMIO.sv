@@ -1,25 +1,23 @@
 
-module MMIO
-(
-    input wire clk,
-    input wire rst,
+module MMIO (
+  input wire clk,
+  input wire rst,
 
-    IF_MMIO.MEM IF_mem,
+  IF_MMIO.MEM IF_mem,
 
-    output reg OUT_powerOff,
-    output reg OUT_reboot,
+  output reg OUT_powerOff,
+  output reg OUT_reboot,
 
-    IF_CSR_MMIO.MMIO OUT_csrIf
+  IF_CSR_MMIO.MMIO OUT_csrIf
 );
 
-assign IF_mem.rbusy = 0;
-assign IF_mem.wbusy = aclintBusy || sysConBusy || (!IF_mem.we);
+  assign IF_mem.rbusy = 0;
+  assign IF_mem.wbusy = aclintBusy || sysConBusy || (!IF_mem.we);
 
-wire[31:0] aclintData;
-wire aclintBusy;
-wire aclintRValid;
-ACLINT aclint
-(
+  wire [31:0] aclintData;
+  wire aclintBusy;
+  wire aclintRValid;
+  ACLINT aclint (
     .clk(clk),
     .rst(rst),
 
@@ -36,13 +34,14 @@ ACLINT aclint
 
     .OUT_mtime(OUT_csrIf.mtime),
     .OUT_mtimecmp(OUT_csrIf.mtimecmp)
-);
+  );
 
-wire[31:0] sysConData;
-wire sysConBusy;
-wire sysConRValid;
-SysCon#(.ADDR(`SYSCON_ADDR)) sysCon
-(
+  wire [31:0] sysConData;
+  wire sysConBusy;
+  wire sysConRValid;
+  SysCon #(
+  .ADDR(`SYSCON_ADDR)
+  ) sysCon (
     .clk(clk),
     .rst(rst),
 
@@ -58,13 +57,13 @@ SysCon#(.ADDR(`SYSCON_ADDR)) sysCon
     .IN_wdata(IF_mem.wdata),
 
     .OUT_powerOff(OUT_powerOff),
-    .OUT_reboot(OUT_reboot)
-);
+    .OUT_reboot  (OUT_reboot)
+  );
 
-always_comb begin
+  always_comb begin
     IF_mem.rdata = 'x;
     if (aclintRValid) IF_mem.rdata = aclintData;
     if (sysConRValid) IF_mem.rdata = sysConData;
-end
+  end
 
 endmodule

@@ -1,51 +1,52 @@
 
-module Top#(parameter WIDTH=128, parameter ADDR_LEN=32)
-(
-    input wire clk,
-    input wire rst,
-    input wire en,
+module Top #(
+  parameter WIDTH = 128,
+  parameter ADDR_LEN = 32
+) (
+  input wire clk,
+  input wire rst,
+  input wire en,
 
-    output wire OUT_halt
+  output wire OUT_halt
 );
 
-wire SOC_poweroff;
-wire SOC_reboot;
-assign OUT_halt = SOC_poweroff || SOC_reboot;
+  wire SOC_poweroff;
+  wire SOC_reboot;
+  assign OUT_halt = SOC_poweroff || SOC_reboot;
 
-logic[`AXI_ID_LEN-1:0]  s_axi_awid;
-logic[ADDR_LEN-1:0] s_axi_awaddr;
-logic[7:0] s_axi_awlen;
-logic[2:0] s_axi_awsize;
-logic[1:0] s_axi_awburst;
-logic[0:0] s_axi_awlock;
-logic[3:0] s_axi_awcache;
-logic s_axi_awvalid;
-logic s_axi_awready;
-logic[WIDTH-1:0] s_axi_wdata;
-logic[(WIDTH/8)-1:0] s_axi_wstrb;
-logic s_axi_wlast;
-logic s_axi_wvalid;
-logic s_axi_wready;
-logic s_axi_bready;
-logic[`AXI_ID_LEN-1:0] s_axi_bid;
-logic s_axi_bvalid;
-logic[`AXI_ID_LEN-1:0] s_axi_arid;
-logic[ADDR_LEN-1:0] s_axi_araddr;
-logic[7:0] s_axi_arlen;
-logic[2:0] s_axi_arsize;
-logic[1:0] s_axi_arburst;
-logic[0:0] s_axi_arlock;
-logic[3:0] s_axi_arcache;
-logic s_axi_arvalid;
-logic s_axi_arready;
-logic s_axi_rready;
-logic[`AXI_ID_LEN-1:0] s_axi_rid;
-logic[WIDTH-1:0] s_axi_rdata;
-logic s_axi_rlast;
-logic s_axi_rvalid;
+  logic [`AXI_ID_LEN-1:0] s_axi_awid;
+  logic [ADDR_LEN-1:0] s_axi_awaddr;
+  logic [7:0] s_axi_awlen;
+  logic [2:0] s_axi_awsize;
+  logic [1:0] s_axi_awburst;
+  logic [0:0] s_axi_awlock;
+  logic [3:0] s_axi_awcache;
+  logic s_axi_awvalid;
+  logic s_axi_awready;
+  logic [WIDTH-1:0] s_axi_wdata;
+  logic [(WIDTH/8)-1:0] s_axi_wstrb;
+  logic s_axi_wlast;
+  logic s_axi_wvalid;
+  logic s_axi_wready;
+  logic s_axi_bready;
+  logic [`AXI_ID_LEN-1:0] s_axi_bid;
+  logic s_axi_bvalid;
+  logic [`AXI_ID_LEN-1:0] s_axi_arid;
+  logic [ADDR_LEN-1:0] s_axi_araddr;
+  logic [7:0] s_axi_arlen;
+  logic [2:0] s_axi_arsize;
+  logic [1:0] s_axi_arburst;
+  logic [0:0] s_axi_arlock;
+  logic [3:0] s_axi_arcache;
+  logic s_axi_arvalid;
+  logic s_axi_arready;
+  logic s_axi_rready;
+  logic [`AXI_ID_LEN-1:0] s_axi_rid;
+  logic [WIDTH-1:0] s_axi_rdata;
+  logic s_axi_rlast;
+  logic s_axi_rvalid;
 
-ExternalAXISim extMem
-(
+  ExternalAXISim extMem (
     .clk(clk),
     .rst(rst),
 
@@ -80,18 +81,17 @@ ExternalAXISim extMem
     .s_axi_rdata(s_axi_rdata),
     .s_axi_rlast(s_axi_rlast),
     .s_axi_rvalid(s_axi_rvalid)
-);
+  );
 
-SoC soc
-(
+  SoC soc (
     .clk(clk),
     .rst(rst),
-    .en(en),
+    .en (en),
 
     .IN_irq(1'b0),
 
     .OUT_powerOff(SOC_poweroff),
-    .OUT_reboot(SOC_reboot),
+    .OUT_reboot  (SOC_reboot),
 
     .s_axi_awid(s_axi_awid),
     .s_axi_awaddr(s_axi_awaddr),
@@ -127,6 +127,6 @@ SoC soc
 
     .OUT_dbg(),
     .OUT_dbgMemC()
-);
+  );
 
 endmodule

@@ -2,6 +2,7 @@ VERILATOR_FLAGS = \
 	--cc --build --threads 4 --unroll-stmts 999999 -unroll-count 999999 --assert -Wall -Wno-BLKSEQ -Wno-UNUSED \
 	-Wno-PINCONNECTEMPTY -Wno-DECLFILENAME -Wno-ENUMVALUE -Wno-GENUNNAMED -O3 -sv \
 	$(VFLAGS) \
+	+incdir+src \
 	-CFLAGS "-std=c++17 -march=native" \
 	-LDFLAGS "-ldl" \
 	-MAKEFLAGS -j$(nproc) \
