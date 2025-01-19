@@ -26,15 +26,20 @@ localparam Tag TAG_ZERO = {1'b1, RFTag'(0)};
 
 typedef enum logic [5:0] {
   INT_ADD,
+  INT_ADDW,
   INT_XOR,
   INT_OR,
   INT_AND,
   INT_SLL,
+  INT_SLLW,
   INT_SRL,
+  INT_SRLW,
   INT_SLT,
   INT_SLTU,
   INT_SUB,
+  INT_SUBW,
   INT_SRA,
+  INT_SRAW,
   INT_LUI,
   INT_SYS,
   INT_SH1ADD,
@@ -90,29 +95,37 @@ typedef enum logic [5:0] {
   MUL_MUL,
   MUL_MULH,
   MUL_MULSU,
-  MUL_MULU
+  MUL_MULU,
+  MUL_MULW
 } OPCode_MUL;
 
 typedef enum logic [5:0] {
   DIV_DIV,
   DIV_DIVU,
   DIV_REM,
-  DIV_REMU
+  DIV_REMU,
+  DIV_DIVW,
+  DIV_DIVUW,
+  DIV_REMW,
+  DIV_REMUW
 } OPCode_DIV;
 
 typedef enum logic [5:0] {
   LSU_LB,
   LSU_LH,
   LSU_LW,
+  LSU_LD,
 
   LSU_LBU,
   LSU_LHU,
+  LSU_LWU,
   LSU_LR_W,
 
   LSU_SC_W,
   LSU_SB,
   LSU_SH,
   LSU_SW,
+  LSU_SD,
 
   LSU_CBO_CLEAN,
   LSU_CBO_INVAL,
@@ -529,10 +542,10 @@ typedef struct packed {
 
 typedef struct packed {
   logic [31:0] instr;
-  logic [30:0] pc;
+  logic [62:0] pc;
   FetchOff_t fetchStartOffs;
   FetchOff_t fetchPredOffs;
-  logic [30:0] predTarget;
+  logic [62:0] predTarget;
   logic predTaken;
   FetchID_t fetchID;
   IFetchFault fetchFault;
@@ -548,7 +561,7 @@ typedef struct packed {
 } DecodeBranch;
 
 typedef struct packed {
-  logic [31:0] imm;
+  logic [63:0] imm;
   logic [11:0] imm12; // only used for jalr
   logic [4:0] rs1;
   logic [4:0] rs2;

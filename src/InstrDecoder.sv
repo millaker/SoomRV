@@ -11,7 +11,9 @@
 `define OPC_STORE 7'b0100011
 `define OPC_BRANCH 7'b1100011
 `define OPC_REG_IMM 7'b0010011
+`define OPC_REG_IMM32 7'b0011011
 `define OPC_REG_REG 7'b0110011
+`define OPC_REG_REG32 7'b0111011
 `define OPC_ENV 7'b1110011
 `define OPC_BITM 7'b0110011
 
@@ -242,15 +244,15 @@ module InstrDecoder
 
       case (instr.opcode)
         `OPC_LUI,
-        `OPC_AUIPC:      uop.imm = {instr[31:12], 12'b0};
-        `OPC_JAL:        uop.imm = $signed({{12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0});
+        `OPC_AUIPC:      uop.imm = {{32{instr[31]}}, instr[31:12], 12'b0};
+        `OPC_JAL:        uop.imm = $signed({{44{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0});
         `OPC_ENV,
         `OPC_JALR,
         `OPC_LOAD,
-        `OPC_REG_IMM:    uop.imm = $signed({{20{instr[31]}}, instr[31:20]});
-        `OPC_BRANCH:     uop.imm = $signed({{20{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0});
+        `OPC_REG_IMM:    uop.imm = $signed({{52{instr[31]}}, instr[31:20]});
+        `OPC_BRANCH:     uop.imm = $signed({{52{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0});
         `OPC_CUST0,
-        `OPC_STORE:    uop.imm = $signed({{20{instr[31]}}, instr[31:25], instr[11:7]});
+        `OPC_STORE:    uop.imm = $signed({{52{instr[31]}}, instr[31:25], instr[11:7]});
         //`OPC_REG_REG,
         default:      uop.imm = 0;
       endcase
@@ -338,7 +340,7 @@ module InstrDecoder
                   uop.rs1 = instr.rs1;
                   uop.rd = instr.rd;
                   uop.opcode = CSR_RW;
-                  uop.imm = {20'bx, instr[31:20]};
+                  uop.imm = {52'bx, instr[31:20]};
                   invalidEnc = 0;
                 end
 
@@ -347,7 +349,7 @@ module InstrDecoder
                   uop.rs1 = instr.rs1;
                   uop.rd = instr.rd;
                   uop.opcode = (instr.rs1 == 0) ? CSR_R : CSR_RS;
-                  uop.imm = {20'bx, instr[31:20]};
+                  uop.imm = {52'bx, instr[31:20]};
                   invalidEnc = 0;
                 end
 
@@ -356,7 +358,7 @@ module InstrDecoder
                   uop.rs1 = instr.rs1;
                   uop.rd = instr.rd;
                   uop.opcode = (instr.rs1 == 0) ? CSR_R : CSR_RC;
-                  uop.imm = {20'bx, instr[31:20]};
+                  uop.imm = {52'bx, instr[31:20]};
                   invalidEnc = 0;
                 end
 
@@ -364,7 +366,7 @@ module InstrDecoder
                   uop.fu = FU_CSR;
                   uop.rd = instr.rd;
                   uop.opcode = CSR_RW_I;
-                  uop.imm = {15'bx, instr.rs1, instr[31:20]};
+                  uop.imm = {47'bx, instr.rs1, instr[31:20]};
                   invalidEnc = 0;
                 end
 
@@ -372,7 +374,7 @@ module InstrDecoder
                   uop.fu = FU_CSR;
                   uop.rd = instr.rd;
                   uop.opcode = (instr.rs1 == 0) ? CSR_R : CSR_RS_I;
-                  uop.imm = {15'bx, instr.rs1, instr[31:20]};
+                  uop.imm = {47'bx, instr.rs1, instr[31:20]};
                   invalidEnc = 0;
                 end
 
@@ -380,7 +382,7 @@ module InstrDecoder
                   uop.fu = FU_CSR;
                   uop.rd = instr.rd;
                   uop.opcode = (instr.rs1 == 0) ? CSR_R : CSR_RC_I;
-                  uop.imm = {15'bx, instr.rs1, instr[31:20]};
+                  uop.imm = {47'bx, instr.rs1, instr[31:20]};
                   invalidEnc = 0;
                 end
 
@@ -436,7 +438,7 @@ module InstrDecoder
               if (IN_instrs[i].predTaken)
                 uop.imm = {IN_instrs[i].predTarget, 1'b0};
               else
-                uop.imm = {(IN_instrs[i].pc + (uop.compressed ? 31'd1 : 31'd2)), 1'b0};
+                uop.imm = {(IN_instrs[i].pc + (uop.compressed ? 63'd1 : 63'd2)), 1'b0};
 
               invalidEnc = 0;
             end
@@ -445,19 +447,18 @@ module InstrDecoder
               uop.rs2 = 0;
               uop.immB = 1;
               uop.rd = instr.rd;
-
               uop.fu = FU_AGU;
+              invalidEnc = 0;
               case (instr.funct3)
                 0: uop.opcode = LSU_LB;
                 1: uop.opcode = LSU_LH;
                 2: uop.opcode = LSU_LW;
+                3: uop.opcode = LSU_LD;
                 4: uop.opcode = LSU_LBU;
                 5: uop.opcode = LSU_LHU;
+                6: uop.opcode = LSU_LWU;
+                default: invalidEnc = 1;
               endcase
-              invalidEnc =
-              instr.funct3 != 0 && instr.funct3 != 1 &&
-              instr.funct3 != 2 && instr.funct3 != 4 &&
-              instr.funct3 != 5;
             end
             `OPC_STORE: begin
               uop.rs1 = instr.rs1;
@@ -470,6 +471,7 @@ module InstrDecoder
                 0: uop.opcode = LSU_SB;
                 1: uop.opcode = LSU_SH;
                 2: uop.opcode = LSU_SW;
+                3: uop.opcode = LSU_SD;
                 default: invalidEnc = 1;
               endcase
             end
@@ -536,7 +538,7 @@ module InstrDecoder
               else if (instr.funct3 == 1) begin
                 uop.fu = FU_INT;
                 uop.opcode = INT_SYS;
-                uop.imm = {28'bx, FLAGS_FENCE};
+                uop.imm = {60'bx, FLAGS_FENCE};
                 invalidEnc = 0;
                 decBranch = DecodeBranch'{taken: 1, wfi: 1, fetchID: uop.fetchID, fetchOffs: uop.fetchOffs};
               end
@@ -568,6 +570,23 @@ module InstrDecoder
                 decBranch = DecodeBranch'{taken: 1, wfi: 1, fetchID: uop.fetchID, fetchOffs: uop.fetchOffs};
               end
             end
+            `OPC_REG_IMM32: begin
+              uop.rs1 = instr.rs1;
+              uop.rs2 = 0;
+              uop.immB = 1;
+              uop.rd = instr.rd;
+              uop.fu = FU_INT;
+              if (!((instr.funct3 == 1 && instr.funct7 != 0) ||
+              (instr.funct3 == 5 && instr.funct7 != 7'h20 && instr.funct7 != 0))) begin
+                invalidEnc = 0;
+                case(instr.funct3)
+                  3'd0: uop.opcode = INT_ADDW;
+                  3'd1: uop.opcode = INT_SLLW;
+                  3'd5: uop.opcode = (instr.funct7 == 7'h20) ? INT_SRAW : INT_SRLW;
+                  default: invalidEnc = 1;
+                endcase
+              end
+            end
             `OPC_REG_IMM: begin
               uop.rs1 = instr.rs1;
               uop.rs2 = 0;
@@ -575,8 +594,8 @@ module InstrDecoder
               uop.rd = instr.rd;
               uop.fu = FU_INT;
 
-              if (!((instr.funct3 == 1 && instr.funct7 != 0) ||
-              (instr.funct3 == 5 && instr.funct7 != 7'h20 && instr.funct7 != 0))) begin
+              if (!((instr.funct3 == 1 && instr.funct7[6:1] != 0) ||
+              (instr.funct3 == 5 && instr.funct7[6:1] != 6'h10 && instr.funct7[6:1] != 0))) begin
                 invalidEnc = 0;
 
                 case (instr.funct3)
@@ -585,7 +604,7 @@ module InstrDecoder
                   3'd2: uop.opcode = INT_SLT;
                   3'd3: uop.opcode = INT_SLTU;
                   3'd4: uop.opcode = INT_XOR;
-                  3'd5: uop.opcode = (instr.funct7 == 7'h20) ? INT_SRA : INT_SRL;
+                  3'd5: uop.opcode = (instr.funct7[6:1] == 6'h10) ? INT_SRA : INT_SRL;
                   3'd6: uop.opcode = INT_OR;
                   3'd7: uop.opcode = INT_AND;
                 endcase
@@ -624,7 +643,7 @@ module InstrDecoder
                   invalidEnc = 0;
                   uop.fu = FU_BITMANIP;
                   uop.opcode = BM_ROR;
-                  uop.imm = {27'b0, instr.rs2};
+                  uop.imm = {59'b0, instr.rs2};
                 end
               end
               else if (instr[31:20] == 12'b001010000111 && instr.funct3 == 3'b101) begin
@@ -642,13 +661,13 @@ module InstrDecoder
                   invalidEnc = 0;
                   uop.fu = FU_BITMANIP;
                   uop.opcode = BM_BCLR;
-                  uop.imm = {27'b0, instr.rs2};
+                  uop.imm = {59'b0, instr.rs2};
                 end
                 else if (instr.funct3 == 3'b101) begin
                   invalidEnc = 0;
                   uop.fu = FU_BITMANIP;
                   uop.opcode = BM_BEXT;
-                  uop.imm = {27'b0, instr.rs2};
+                  uop.imm = {59'b0, instr.rs2};
                 end
               end
               else if (instr.funct7 == 7'b0110100) begin
@@ -656,7 +675,7 @@ module InstrDecoder
                   invalidEnc = 0;
                   uop.fu = FU_BITMANIP;
                   uop.opcode = BM_BINV;
-                  uop.imm = {27'b0, instr.rs2};
+                  uop.imm = {59'b0, instr.rs2};
                 end
               end
               else if (instr.funct7 == 7'b0010100) begin
@@ -664,7 +683,7 @@ module InstrDecoder
                   invalidEnc = 0;
                   uop.fu = FU_BITMANIP;
                   uop.opcode = BM_BSET;
-                  uop.imm = {27'b0, instr.rs2};
+                  uop.imm = {59'b0, instr.rs2};
                 end
               end
 
@@ -677,6 +696,47 @@ module InstrDecoder
               uop.imm[11] == uop.imm[6] &&
               uop.imm[11] == uop.imm[5]) begin
                 uop.fu = FU_RN;
+              end
+            end
+            `OPC_REG_REG32: begin
+              uop.rs1 = instr.rs1;
+              uop.rs2 = instr.rs2;
+              uop.immB = 0;
+              uop.rd = instr.rd;
+              uop.fu = FU_INT;
+              invalidEnc = 0;
+              if(instr.funct7[6:1] == 0) begin
+                /* MUL DIV 32 */
+                if(instr.funct7[0] == 1'b1) begin
+                  if(instr.funct3 < 4) begin
+                    uop.fu = FU_MUL;
+                  end else begin
+                    uop.fu = FU_DIV;
+                  end
+                  case(instr.funct3)
+                    0: uop.opcode = MUL_MULW;
+                    4: uop.opcode = DIV_DIVW;
+                    5: uop.opcode = DIV_DIVUW;
+                    6: uop.opcode = DIV_REMW;
+                    7: uop.opcode = DIV_REMUW;
+                    default: invalidEnc = 1;
+                  endcase
+                end else begin
+                  case(instr.funct3)
+                    0: uop.opcode = INT_ADDW;
+                    1: uop.opcode = INT_SLLW;
+                    5: uop.opcode = INT_SRLW;
+                    default: invalidEnc = 1;
+                  endcase
+                end
+              end else if(instr.funct7[6:1] == 6'b010000) begin
+                case(instr.funct3)
+                  0: uop.opcode = INT_SUBW;
+                  5: uop.opcode = INT_SRAW;
+                  default: invalidEnc = 1;
+                endcase
+              end else begin
+                invalidEnc = 1;
               end
             end
             `OPC_REG_REG: begin
@@ -716,12 +776,12 @@ module InstrDecoder
                   7: uop.opcode = DIV_REMU;
                 endcase
 
-                            `ifndef ENABLE_INT_DIV
-                                if (uop.fu == FU_DIV) invalidEnc = 1;
-                            `endif
-                            `ifndef ENABLE_INT_MUL
-                                if (uop.fu == FU_MUL) invalidEnc = 1;
-                            `endif
+                `ifndef ENABLE_INT_DIV
+                    if (uop.fu == FU_DIV) invalidEnc = 1;
+                `endif
+                `ifndef ENABLE_INT_MUL
+                    if (uop.fu == FU_MUL) invalidEnc = 1;
+                `endif
               end
               else if (instr.funct7 == 7'h20) begin
                 invalidEnc = (instr.funct3 != 0 && instr.funct3 != 5);
@@ -1123,7 +1183,7 @@ module InstrDecoder
             if (i16.cl.funct3 == 3'b010) begin
               uop.opcode = LSU_LW;
               uop.fu = FU_AGU;
-              uop.imm = {25'b0, i16.cl.imm[0], i16.cl.imm2, i16.cl.imm[1], 2'b00};
+              uop.imm = {57'b0, i16.cl.imm[0], i16.cl.imm2, i16.cl.imm[1], 2'b00};
               uop.rs1 = {2'b01, i16.cl.rs1};
               uop.rd = {2'b01, i16.cl.rd};
               uop.immB = 1;
@@ -1133,7 +1193,7 @@ module InstrDecoder
             else if (i16.cs.funct3 == 3'b110) begin
               uop.opcode = LSU_SW;
               uop.fu = FU_AGU;
-              uop.imm = {25'b0, i16.cs.imm[0], i16.cs.imm2, i16.cs.imm[1], 2'b00};
+              uop.imm = {57'b0, i16.cs.imm[0], i16.cs.imm2, i16.cs.imm[1], 2'b00};
               uop.rs1 = {2'b01, i16.cs.rd_rs1};
               uop.rs2 = {2'b01, i16.cs.rs2};
               uop.immB = 1;
@@ -1143,7 +1203,7 @@ module InstrDecoder
             else if (i16.ciw.funct3 == 3'b000 && i16.ciw.imm != 0) begin
               uop.opcode = INT_ADD;
               uop.fu = FU_INT;
-              uop.imm = {22'b0, i16.ciw.imm[5:2], i16.ciw.imm[7:6], i16.ciw.imm[0], i16.ciw.imm[1], 2'b00};
+              uop.imm = {54'b0, i16.ciw.imm[5:2], i16.ciw.imm[7:6], i16.ciw.imm[0], i16.ciw.imm[1], 2'b00};
               uop.rs1 = 2;
               uop.immB = 1;
               uop.rd = {2'b01, i16.ciw.rd};
@@ -1155,7 +1215,7 @@ module InstrDecoder
               uop.rs1 = {2'b01, i16.raw[9:7]};
               uop.rs2 = 0;
               uop.immB = 1;
-              uop.imm = {30'b0, i16.raw[5], i16.raw[6]};
+              uop.imm = {62'b0, i16.raw[5], i16.raw[6]};
               uop.rd = {2'b01, i16.raw[4:2]};
               uop.fu = FU_AGU;
               uop.opcode = LSU_LBU;
@@ -1167,7 +1227,7 @@ module InstrDecoder
               uop.rs1 = {2'b01, i16.raw[9:7]};
               uop.rs2 = 0;
               uop.immB = 1;
-              uop.imm = {30'b0, i16.raw[5], 1'b0};
+              uop.imm = {62'b0, i16.raw[5], 1'b0};
               uop.rd = {2'b01, i16.raw[4:2]};
               uop.fu = FU_AGU;
               uop.opcode = LSU_LHU;
@@ -1179,7 +1239,7 @@ module InstrDecoder
               uop.rs1 = {2'b01, i16.raw[9:7]};
               uop.rs2 = 0;
               uop.immB = 1;
-              uop.imm = {30'b0, i16.raw[5], 1'b0};
+              uop.imm = {62'b0, i16.raw[5], 1'b0};
               uop.rd = {2'b01, i16.raw[4:2]};
               uop.fu = FU_AGU;
               uop.opcode = LSU_LH;
@@ -1190,7 +1250,7 @@ module InstrDecoder
             else if (i16.ciw.funct3 == 3'b100 && i16.raw[12:10] == 3'b010) begin
               uop.rs1 = {2'b01, i16.raw[9:7]};
               uop.rs2 = {2'b01, i16.raw[4:2]};
-              uop.imm = {30'b0, i16.raw[5], i16.raw[6]};
+              uop.imm = {62'b0, i16.raw[5], i16.raw[6]};
               uop.immB = 0;
               uop.rd = 0;
               uop.fu = FU_AGU;
@@ -1256,7 +1316,7 @@ module InstrDecoder
             else if (i16.cj.funct3 == 3'b001) begin
               uop.opcode = BR_JAL;
               uop.fu = FU_BRANCH;
-              uop.imm = {{20{i16.cj.imm[10]}}, i16.cj.imm[10], i16.cj.imm[6], i16.cj.imm[8:7], i16.cj.imm[4],
+              uop.imm = {{52{i16.cj.imm[10]}}, i16.cj.imm[10], i16.cj.imm[6], i16.cj.imm[8:7], i16.cj.imm[4],
               i16.cj.imm[5], i16.cj.imm[0], i16.cj.imm[9], i16.cj.imm[3:1], 1'b0};
               uop.immB = 1;
               uop.rd = 1; // ra
@@ -1266,7 +1326,7 @@ module InstrDecoder
             else if (i16.cb.funct3 == 3'b110) begin
               uop.opcode = BR_BEQ;
               uop.fu = FU_BRANCH;
-              uop.imm = {{23{i16.cb.imm2[2]}}, i16.cb.imm2[2], i16.cb.imm[4:3],
+              uop.imm = {{55{i16.cb.imm2[2]}}, i16.cb.imm2[2], i16.cb.imm[4:3],
               i16.cb.imm[0], i16.cb.imm2[1:0], i16.cb.imm[2:1], 1'b0};
 
               uop.rs1 = {2'b01, i16.cb.rd_rs1};
@@ -1276,7 +1336,7 @@ module InstrDecoder
             else if (i16.cb.funct3 == 3'b111) begin
               uop.opcode = BR_BNE;
               uop.fu = FU_BRANCH;
-              uop.imm = {{23{i16.cb.imm2[2]}}, i16.cb.imm2[2], i16.cb.imm[4:3],
+              uop.imm = {{55{i16.cb.imm2[2]}}, i16.cb.imm2[2], i16.cb.imm[4:3],
               i16.cb.imm[0], i16.cb.imm2[1:0], i16.cb.imm[2:1], 1'b0};
 
               uop.rs1 = {2'b01, i16.cb.rd_rs1};
@@ -1285,7 +1345,7 @@ module InstrDecoder
             // c.li
             else if (i16.ci.funct3 == 3'b010 && !(i16.ci.rd_rs1 == 0)) begin
               uop.fu = FU_RN; // eliminated during rename
-              uop.imm = {{26{i16.ci.imm2}}, i16.ci.imm2, i16.ci.imm};
+              uop.imm = {{58{i16.ci.imm2}}, i16.ci.imm2, i16.ci.imm};
               uop.immB = 1;
               uop.rd = i16.ci.rd_rs1;
               invalidEnc = 0;
@@ -1297,12 +1357,12 @@ module InstrDecoder
               if (i16.ci.rd_rs1 == 2) begin
                 uop.opcode = INT_ADD;
                 uop.rs1 = 2;
-                uop.imm = {{22{i16.ci.imm2}}, i16.ci.imm2, i16.ci.imm[2:1],
+                uop.imm = {{54{i16.ci.imm2}}, i16.ci.imm2, i16.ci.imm[2:1],
                 i16.ci.imm[3], i16.ci.imm[0], i16.ci.imm[4], 4'b0};
               end
               else begin
                 uop.opcode = INT_LUI;
-                uop.imm = {{14{i16.ci.imm2}}, i16.ci.imm2, i16.ci.imm, 12'b0};
+                uop.imm = {{46{i16.ci.imm2}}, i16.ci.imm2, i16.ci.imm, 12'b0};
               end
 
               uop.immB = 1;
@@ -1313,7 +1373,7 @@ module InstrDecoder
             else if (i16.ci.funct3 == 3'b000 && !(i16.ci.rd_rs1 == 0)) begin
               uop.opcode = INT_ADD;
               uop.fu = FU_INT;
-              uop.imm = {{26{i16.ci.imm2}}, i16.ci.imm2, i16.ci.imm};
+              uop.imm = {{58{i16.ci.imm2}}, i16.ci.imm2, i16.ci.imm};
               uop.immB = 1;
               uop.rs1 = i16.ci.rd_rs1;
               uop.rd = i16.ci.rd_rs1;
@@ -1324,7 +1384,7 @@ module InstrDecoder
             else if (i16.cb2.funct3 == 3'b100 && i16.cb2.funct2 == 2'b00 && !i16.cb2.imm2 && i16.cb2.imm[4:0] != 0) begin
               uop.opcode = INT_SRL;
               uop.fu = FU_INT;
-              uop.imm = {27'b0, i16.cb2.imm[4:0]};
+              uop.imm = {59'b0, i16.cb2.imm[4:0]};
               uop.immB = 1;
               uop.rs1 = {2'b01, i16.cb2.rd_rs1};
               uop.rd = {2'b01, i16.cb2.rd_rs1};
@@ -1334,7 +1394,7 @@ module InstrDecoder
             else if (i16.cb2.funct3 == 3'b100 && i16.cb2.funct2 == 2'b01 && !i16.cb2.imm2 && i16.cb2.imm[4:0] != 0) begin
               uop.opcode = INT_SRA;
               uop.fu = FU_INT;
-              uop.imm = {27'b0, i16.cb2.imm[4:0]};
+              uop.imm = {59'b0, i16.cb2.imm[4:0]};
               uop.immB = 1;
               uop.rs1 = {2'b01, i16.cb2.rd_rs1};
               uop.rd = {2'b01, i16.cb2.rd_rs1};
@@ -1344,7 +1404,7 @@ module InstrDecoder
             else if (i16.cb2.funct3 == 3'b100 && i16.cb2.funct2 == 2'b10) begin
               uop.opcode = INT_AND;
               uop.fu = FU_INT;
-              uop.imm = {{26{i16.cb2.imm2}}, i16.cb2.imm2, i16.cb2.imm[4:0]};
+              uop.imm = {{58{i16.cb2.imm2}}, i16.cb2.imm2, i16.cb2.imm[4:0]};
               uop.immB = 1;
               uop.rs1 = {2'b01, i16.cb2.rd_rs1};
               uop.rd = {2'b01, i16.cb2.rd_rs1};
@@ -1379,7 +1439,7 @@ module InstrDecoder
               uop.fu = FU_INT;
               uop.opcode = INT_AND;
               uop.immB = 1;
-              uop.imm = 32'h000000FF;
+              uop.imm = 64'hFF;
               invalidEnc = 0;
             end
             // c.sext.b
@@ -1447,7 +1507,7 @@ module InstrDecoder
             if (i16.ci.funct3 == 3'b010 && !(i16.ci.rd_rs1 == 0)) begin
               uop.opcode = LSU_LW;
               uop.fu = FU_AGU;
-              uop.imm = {24'b0, i16.ci.imm[1:0], i16.ci.imm2, i16.ci.imm[4:2], 2'b00};
+              uop.imm = {56'b0, i16.ci.imm[1:0], i16.ci.imm2, i16.ci.imm[4:2], 2'b00};
               uop.rs1 = 2; // sp
               uop.rd = i16.ci.rd_rs1;
               uop.immB = 1;
@@ -1457,7 +1517,7 @@ module InstrDecoder
             else if (i16.css.funct3 == 3'b110) begin
               uop.opcode = LSU_SW;
               uop.fu = FU_AGU;
-              uop.imm = {24'b0, i16.css.imm[1:0], i16.css.imm[5:2], 2'b00};
+              uop.imm = {56'b0, i16.css.imm[1:0], i16.css.imm[5:2], 2'b00};
               uop.rs1 = 2; // sp
               uop.rs2 = i16.css.rs2;
               uop.immB = 1;
@@ -1475,7 +1535,7 @@ module InstrDecoder
               if (IN_instrs[i].predTaken)
                 uop.imm = {IN_instrs[i].predTarget, 1'b0};
               else
-                uop.imm = {(IN_instrs[i].pc + (uop.compressed ? 31'd1 : 31'd2)), 1'b0};
+                uop.imm = {(IN_instrs[i].pc + (uop.compressed ? 63'd1 : 63'd2)), 1'b0};
 
               invalidEnc = 0;
             end
@@ -1492,7 +1552,7 @@ module InstrDecoder
               if (IN_instrs[i].predTaken)
                 uop.imm = {IN_instrs[i].predTarget, 1'b0};
               else
-                uop.imm = {(IN_instrs[i].pc + (uop.compressed ? 31'd1 : 31'd2)), 1'b0};
+                uop.imm = {(IN_instrs[i].pc + (uop.compressed ? 63'd1 : 63'd2)), 1'b0};
 
               invalidEnc = 0;
             end
@@ -1500,7 +1560,7 @@ module InstrDecoder
             else if (i16.ci.funct3 == 3'b000 && !(i16.ci.rd_rs1 == 0) && !i16.ci.imm2 && i16.ci.imm[4:0] != 0) begin
               uop.opcode = INT_SLL;
               uop.fu = FU_INT;
-              uop.imm = {27'b0, i16.ci.imm[4:0]};
+              uop.imm = {59'b0, i16.ci.imm[4:0]};
               uop.immB = 1;
               uop.rs1 = i16.ci.rd_rs1;
               uop.rd = i16.ci.rd_rs1;
