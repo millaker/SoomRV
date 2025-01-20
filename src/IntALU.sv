@@ -22,17 +22,18 @@ module IntALU #(
     return rv;
   endfunction
 
-  wire [31:0] srcA = IN_uop.srcA;
-  wire [31:0] srcB = IN_uop.srcB;
-  wire [31:0] imm = IN_uop.imm;
+  wire [63:0] srcA = IN_uop.srcA;
+  wire [63:0] srcB = IN_uop.srcB;
+  wire [63:0] imm = IN_uop.imm;
 
   assign OUT_zcFwd.result = resC;
   assign OUT_zcFwd.tag = IN_uop.tagDst;
   assign OUT_zcFwd.valid = IN_uop.valid && HasFU(IN_uop.fu) && !IN_uop.tagDst[$bits(Tag)-1];
 
+  /*
   wire [ 5:0] resLzTz;
 
-  reg  [31:0] srcAbitRev;
+  reg  [63:0] srcAbitRev;
   always_comb begin
     for (integer i = 0; i < 32; i = i + 1) srcAbitRev[i] = srcA[31-i];
   end
@@ -46,17 +47,20 @@ module IntALU #(
     .in (IN_uop.srcA),
     .res(resPopCnt)
   );
+  */
 
   wire lessThan = ($signed(srcA) < $signed(srcB));
   wire lessThanU = (srcA < srcB);
 
-  wire [31:0] finalHalfwPC = IN_uop.pc;
-  wire [31:0] nextInstrPC = finalHalfwPC + 2;
-  wire [31:0] firstHalfwPC = finalHalfwPC - (IN_uop.compressed ? 0 : 2);
+  wire [63:0] finalHalfwPC = IN_uop.pc;
+  wire [63:0] nextInstrPC = finalHalfwPC + 2;
+  wire [63:0] firstHalfwPC = finalHalfwPC - (IN_uop.compressed ? 0 : 2);
 
-  reg [31:0] resC;
+  reg [63:0] resC;
+  reg [31:0] resC_32;
   always_comb begin
-    resC = 32'bx;
+    resC = 64'bx;
+    resC_32 = 32'bx;
     case (IN_uop.fu)
       FU_INT:
       if (HasFU(FU_INT) || HasFU(FU_ATOMIC))
@@ -69,10 +73,10 @@ module IntALU #(
           ATOMIC_AMOMAXU_W, INT_MAXU: resC = lessThanU ? srcB : srcA;
           ATOMIC_AMOMIN_W, INT_MIN: resC = lessThan ? srcA : srcB;
           ATOMIC_AMOMINU_W, INT_MINU: resC = lessThanU ? srcA : srcB;
-          INT_SLL: resC = srcA << srcB[4:0];
-          INT_SRL: resC = srcA >> srcB[4:0];
-          INT_SLT: resC = {31'b0, lessThan};
-          INT_SLTU: resC = {31'b0, lessThanU};
+          INT_SLL: resC = srcA << srcB[5:0];
+          INT_SRL: resC = srcA >> srcB[5:0];
+          INT_SLT: resC = {63'b0, lessThan};
+          INT_SLTU: resC = {63'b0, lessThanU};
           INT_SUB: resC = srcA - srcB;
           INT_SRA: resC = $signed(srcA) >>> srcB[4:0];
           INT_LUI: resC = srcB;
@@ -82,9 +86,29 @@ module IntALU #(
           INT_ANDN: resC = srcA & (~srcB);
           INT_ORN: resC = srcA | (~srcB);
           INT_XNOR: resC = srcA ^ (~srcB);
-          INT_SE_B: resC = {{24{srcA[7]}}, srcA[7:0]};
-          INT_SE_H: resC = {{16{srcA[15]}}, srcA[15:0]};
-          INT_ZE_H: resC = {16'b0, srcA[15:0]};
+          INT_SE_B: resC = {{56{srcA[7]}}, srcA[7:0]};
+          INT_SE_H: resC = {{48{srcA[15]}}, srcA[15:0]};
+          INT_ZE_H: resC = {48'b0, srcA[15:0]};
+          INT_ADDW: begin
+            resC_32 = srcA[31:0] + srcB[31:0];
+            resC = {{32{resC_32[31]}}, resC_32};
+          end
+          INT_SLLW: begin
+            resC_32 = srcA[31:0] << srcB[4:0];
+            resC = {{32{resC_32[31]}}, resC_32};
+          end
+          INT_SRLW: begin
+            resC_32 = srcA[31:0] >> srcB[4:0];
+            resC = {{32{resC_32[31]}}, resC_32};
+          end
+          INT_SUBW: begin
+            resC_32 = srcA[31:0] - srcB[31:0];
+            resC = {{32{resC_32[31]}}, resC_32};
+          end
+          INT_SRAW: begin
+            resC_32 = srcA[31:0] >>> srcB[4:0];
+            resC = {{32{resC_32[31]}}, resC_32};
+          end
           default: ;
         endcase
 
@@ -96,6 +120,7 @@ module IntALU #(
           default: ;
         endcase
 
+        /* Skip bitmanip for now
       FU_BITMANIP:
       if (HasFU(FU_BITMANIP))
         case (IN_uop.opcode)
@@ -128,6 +153,7 @@ module IntALU #(
 `endif
           default: ;
         endcase
+      */
       default: ;
     endcase
   end
@@ -174,15 +200,15 @@ module IntALU #(
     assign OUT_branch = branch_c;
 
     reg indBranchCorrect;
-    reg [31:0] indBranchDst;
+    reg [63:0] indBranchDst;
     always_comb begin
       indBranchCorrect = 'x;
       indBranchDst = 'x;
       case (IN_uop.opcode)
         BR_V_RET, BR_V_JALR, BR_V_JR: begin
-          indBranchDst = (srcA + {{20{imm[11]}}, imm[11:0]});
+          indBranchDst = (srcA + {{52{imm[11]}}, imm[11:0]});
           indBranchDst[0] = 0;
-          indBranchCorrect = (indBranchDst[31:1] == srcB[31:1]);
+          indBranchCorrect = (indBranchDst[63:1] == srcB[63:1]);
         end
         default: ;
       endcase
@@ -214,8 +240,8 @@ module IntALU #(
         if (isBranch) begin
           if (branchTaken != IN_uop.bpi.taken && IN_uop.opcode != BR_JAL) begin
             if (branchTaken) begin
-              branch_c.dstPC = (firstHalfwPC + {{19{imm[12]}}, imm[12:0]});
-              btUpdate_c.dst = (firstHalfwPC + {{19{imm[12]}}, imm[12:0]});
+              branch_c.dstPC = (firstHalfwPC + {{51{imm[12]}}, imm[12:0]});
+              btUpdate_c.dst = (firstHalfwPC + {{51{imm[12]}}, imm[12:0]});
             end else begin
               branch_c.dstPC = nextInstrPC;
             end
@@ -263,11 +289,8 @@ module IntALU #(
     OUT_amoData <= AMO_Data_UOp'{valid: 0, default: 'x};
 
     if (rst);
-    else if (IN_uop.valid && HasFU(
-    IN_uop.fu
-    ) && (!IN_branch.taken || $signed(
-    IN_uop.sqN - IN_branch.sqN
-    ) <= 0)) begin
+    else if (IN_uop.valid && HasFU(IN_uop.fu)
+    && (!IN_branch.taken || $signed(IN_uop.sqN - IN_branch.sqN) <= 0)) begin
       OUT_uop.result <= resC;
       OUT_uop.tagDst <= IN_uop.tagDst;
       OUT_uop.doNotCommit <= 0;

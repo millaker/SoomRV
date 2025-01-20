@@ -415,8 +415,8 @@ typedef struct packed {
 typedef struct packed {logic taken;} BranchPredInfo  /* public */;
 
 typedef struct packed {
-  logic [31:0] src;
-  logic [31:0] dst;
+  logic [63:0] src;
+  logic [63:0] dst;
   FetchOff_t fetchStartOffs;
   BranchType btype;
   FetchOff_t multipleOffs;
@@ -456,7 +456,7 @@ typedef struct packed {
   FetchOff_t fetchOffs;
   RetStackAction retAct;
   HistoryAction histAct;
-  logic [31:0] dstPC;
+  logic [63:0] dstPC;
   SqN sqN;
   SqN storeSqN;
   SqN loadSqN;
@@ -664,7 +664,7 @@ typedef struct packed {
 } EX_UOp  /* public */;
 
 typedef struct packed {
-  logic [31:0] result;
+  logic [63:0] result;
   Tag tagDst;
   SqN sqN;
   Flags flags;
@@ -688,7 +688,7 @@ typedef struct packed {
 } ResultUOp  /* public */;
 
 typedef struct packed {
-  logic [31:0] result;
+  logic [63:0] result;
   SqN storeSqN;
   SqN sqN;
   logic valid;
