@@ -44,9 +44,8 @@ module BranchSelector #(
     branch_c.taken = 0;
     OUT_PERFC_branchMispr_c = 0;
 
-    if (compBranches[0].taken && (!compBranches[1].taken || ($signed(
-    compBranches[0].sqN - compBranches[1].sqN
-    ) < 0))) begin
+    if (compBranches[0].taken && 
+       (!compBranches[1].taken || ($signed(compBranches[0].sqN - compBranches[1].sqN) < 0))) begin
       branch_c = compBranches[0];
       if (!IN_mispredFlush) OUT_PERFC_branchMispr_c = 1;
     end else branch_c = compBranches[1];

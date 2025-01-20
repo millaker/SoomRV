@@ -2,6 +2,9 @@
 `define RENAME_SV
 
 `include "Include.sv"
+`include "RenameTable.sv"
+`include "TagBuffer.sv"
+`include "Scheduler.sv"
 
 module Rename #(
   parameter WIDTH_ISSUE = `DEC_WIDTH,
@@ -83,6 +86,10 @@ module Rename #(
   reg TB_tagsValid[WIDTH_ISSUE-1:0];
   reg isNewestCommit[WIDTH_COMMIT-1:0];
 
+  SqN  counterSqN;
+  SqN  counterStoreSqN;
+  SqN  counterLoadSqN;
+
   always_comb begin
 
     OUT_stall = |portStall;
@@ -124,8 +131,7 @@ module Rename #(
 
     // Writeback
     for (integer i = 0; i < WIDTH_WR; i = i + 1) begin
-      RAT_wbValid[i] = IN_flagsUOps[i].valid && !IN_flagsUOps[i].tagDst[$bits(
-        Tag)-1];
+      RAT_wbValid[i] = IN_flagsUOps[i].valid && !IN_flagsUOps[i].tagDst[$bits(Tag)-1];
       RAT_wbTags[i] = IN_flagsUOps[i].tagDst;
     end
 
@@ -216,9 +222,6 @@ module Rename #(
   wire cycleValid = !IN_branch.taken && frontEn && !OUT_stall;
 
   // Generate SqNs
-  SqN  counterSqN;
-  SqN  counterStoreSqN;
-  SqN  counterLoadSqN;
   assign OUT_nextSqN = counterSqN;
 
   SqN loadSqNs [WIDTH_ISSUE:0];
@@ -351,13 +354,9 @@ module Rename #(
             fetchID: IN_uop[i].fetchID,
             fetchOffs: IN_uop[i].fetchOffs,
             storeSqN:
-            storeSqNs[
-            i+1
-            ], // +1 here, store sqn pre-increments
+            storeSqNs[i+1], // +1 here, store sqn pre-increments
             loadSqN:
-            loadSqNs[
-            i
-            ], // +0 here, load sqn post-increments
+            loadSqNs[i], // +0 here, load sqn post-increments
             immB: IN_uop[i].immB,
             compressed: IN_uop[i].compressed,
 

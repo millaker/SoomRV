@@ -1,3 +1,6 @@
+`ifndef RENAMETABLE_SV
+`define RENAMETABLE_SV
+
 module RenameTable #(
   parameter NUM_LOOKUP = 8,
   parameter NUM_ISSUE = 4,
@@ -115,3 +118,5 @@ module RenameTable #(
   end
 
 endmodule
+
+`endif

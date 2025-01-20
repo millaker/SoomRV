@@ -1,3 +1,8 @@
+`ifndef ROB_SV
+`define ROB_SV
+
+`include "Include.sv"
+
 module ROB #(
   // how many entries, ie how many instructions can we
   // speculatively execute?
@@ -65,11 +70,7 @@ module ROB #(
 
       for (integer j = 0; j < WIDTH_RN; j = j + 1) begin
         // This could be one-hot...
-        if (IN_uop[j].valid && IN_uop[j].sqN[$clog2(
-        WIDTH_RN
-        )-1:0] == i[$clog2(
-        WIDTH_RN
-        )-1:0]) begin
+        if (IN_uop[j].valid && IN_uop[j].sqN[$clog2(WIDTH_RN)-1:0] == i[$clog2(WIDTH_RN)-1:0]) begin
           rnUOpSorted[i] = IN_uop[j];
         end
       end
@@ -194,9 +195,7 @@ module ROB #(
       misprReplayFwdMask[i] = $signed(curSqN - misprReplay_c.endSqN) <= 0;
 
       if (i == WIDTH - 1)
-        misprReplayEnd = !misprReplayFwdMask[i] || $signed(
-          curSqN - misprReplay_c.endSqN
-        ) == 0;
+        misprReplayEnd = !misprReplayFwdMask[i] || $signed(curSqN - misprReplay_c.endSqN) == 0;
     end
   end
 
@@ -283,18 +282,13 @@ module ROB #(
           ));
           reg isExecuted = deqFlags[i] != FLAGS_NX;
           reg noFlagConflict = (!pred || (deqFlags[i] == FLAGS_NONE));
-          reg lbAllowsCommit = (!IN_ldComLimit.valid || $signed(
-            loadSqN - IN_ldComLimit.sqN
-          ) < 0);
+          reg lbAllowsCommit = (!IN_ldComLimit.valid || $signed(loadSqN - IN_ldComLimit.sqN) < 0);
           reg sqAllowsCommit = 1;
           for (integer j = 0; j < NUM_AGUS; j = j + 1)
-            sqAllowsCommit &= (!IN_stComLimit[j].valid || $signed(
-              storeSqN - IN_stComLimit[j].sqN
-            ) < 0);
+            sqAllowsCommit &= (!IN_stComLimit[j].valid || $signed(storeSqN - IN_stComLimit[j].sqN) < 0);
 
           if (!temp && isRenamed &&
-          ((isExecuted && noFlagConflict && sqAllowsCommit && lbAllowsCommit) || timeoutCommit)
-          ) begin
+          ((isExecuted && noFlagConflict && sqAllowsCommit && lbAllowsCommit) || timeoutCommit)) begin
 
             reg isBranch = deqFlags[i] == FLAGS_BRANCH ||
             deqFlags[i] == FLAGS_PRED_TAKEN || deqFlags[i] == FLAGS_PRED_NTAKEN;
@@ -382,11 +376,7 @@ module ROB #(
           end else begin
             // If we are unable to commit anything in this cycle, we use the TrapHandler's PCFile
             // lookup to get the address of the instruction we're stalled on (for debugging/analysis).
-            if (i == 0 && (i[$clog2(
-            LENGTH
-            ):0] < $signed(
-            lastIndex - baseIndex
-            ))) begin
+            if (i == 0 && (i[$clog2(LENGTH):0] < $signed(lastIndex - baseIndex))) begin
               OUT_trapUOp.timeout <= 0;
               OUT_trapUOp.fetchOffs <= deqEntries[i].fetchOffs;
               OUT_trapUOp.fetchID <= deqEntries[i].fetchID;
@@ -431,14 +421,10 @@ module ROB #(
           rnUOpSorted[i].sqN[ID_LEN-1:$clog2(`DEC_WIDTH)],
           i[$clog2(`DEC_WIDTH)-1:0]
           };
-          reg [$clog2(
-            LENGTH/WIDTH_RN
-          )-1:0] id1 = {
+          reg [$clog2(LENGTH/WIDTH_RN)-1:0] id1 = {
           rnUOpSorted[i].sqN[ID_LEN-1:$clog2(`DEC_WIDTH)]
           };
-          reg [$clog2(
-            WIDTH_RN
-          )-1:0] id0 = {
+          reg [$clog2(WIDTH_RN)-1:0] id0 = {
           i[$clog2(`DEC_WIDTH)-1:0]
           };
 
@@ -473,13 +459,10 @@ module ROB #(
 
           // Mark committed ops as valid and set flags
       for (integer i = 0; i < NUM_FLAG_UOPS; i = i + 1) begin
-        if (IN_flagUOps[i].valid && (!IN_branch.taken || $signed(
-        IN_flagUOps[i].sqN - IN_branch.sqN
-        ) <= 0) && !IN_flagUOps[i].doNotCommit) begin
+        if (IN_flagUOps[i].valid && (!IN_branch.taken || $signed(IN_flagUOps[i].sqN - IN_branch.sqN) <= 0) 
+          && !IN_flagUOps[i].doNotCommit) begin
 
-          reg [$clog2(
-            LENGTH
-          )-1:0] id = IN_flagUOps[i].sqN[ID_LEN-1:0];
+          reg [$clog2(LENGTH)-1:0] id = IN_flagUOps[i].sqN[ID_LEN-1:0];
           flags[id] <= IN_flagUOps[i].flags;
           assert (IN_flagUOps[i].flags != FLAGS_NX);
         end
@@ -505,3 +488,5 @@ module ROB #(
   end
 
 endmodule
+
+`endif

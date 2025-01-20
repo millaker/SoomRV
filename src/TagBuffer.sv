@@ -1,4 +1,7 @@
+`ifndef TAGBUFFER_SV
+`define TAGBUFFER_SV
 
+`include "Include.sv"
 
 module TagBuffer #(
   parameter NUM_ISSUE  = 4,
@@ -116,3 +119,5 @@ module TagBuffer #(
   end
 
 endmodule
+
+`endif

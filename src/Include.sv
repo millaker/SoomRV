@@ -576,7 +576,7 @@ typedef struct packed {
 } D_UOp  /* public */;
 
 typedef struct packed {
-  logic [31:0] imm;
+  logic [63:0] imm;
   logic [11:0] imm12; // only used for jalr (on int ports)
   logic availA;
   Tag tagA;
@@ -600,7 +600,7 @@ typedef struct packed {
 } R_UOp  /* public */;
 
 typedef struct packed {
-  logic [31:0] imm;
+  logic [63:0] imm;
   logic [11:0] imm12;
   logic availA;
   Tag tagA;

@@ -1,3 +1,8 @@
+`ifndef SCHEDULER_SV
+`define SCHEDULER_SV
+
+`include "Include.sv"
+
 module Scheduler (
   input wire clk,
   input wire rst,
@@ -111,3 +116,5 @@ module Scheduler (
 `endif
 
 endmodule
+
+`endif

@@ -1,3 +1,8 @@
+`ifndef ISSUEQUEUE_SV
+`define ISSUEQUEUE_SV
+
+`include "Include.sv"
+
 module IssueQueue
 #(
   parameter SIZE = 8,
@@ -45,8 +50,8 @@ module IssueQueue
   endfunction
 
   localparam ID_LEN = $clog2(SIZE);
-  localparam IMM_EXT = ((32 - IMM_BITS) > 0) ? (32 - IMM_BITS) : 0;
-  localparam REGULAR_IMM_BITS = (IMM_BITS < 32) ? IMM_BITS : 32;
+  localparam IMM_EXT = ((64 - IMM_BITS) > 0) ? (64 - IMM_BITS) : 0;
+  localparam REGULAR_IMM_BITS = (IMM_BITS < 64) ? IMM_BITS : 64;
 
   localparam IDIV_DLY=33;
   localparam IMUL_DLY=9-4-2;
@@ -96,8 +101,7 @@ module IssueQueue
 
       for (integer j = 0; j < NUM_ALUS; j=j+1) begin
         if (IN_issueUOps[j].valid && !IN_issueUOps[j].tagDst[$bits(Tag)-1]) begin
-          if (IN_issueUOps[j].fu == FU_INT || IN_issueUOps[j].fu == FU_BRANCH || IN_issueUOps[j].fu == FU_BITMANIP
-          ) begin
+          if (IN_issueUOps[j].fu == FU_INT || IN_issueUOps[j].fu == FU_BRANCH || IN_issueUOps[j].fu == FU_BITMANIP) begin
             for (integer k = 0; k < NUM_OPERANDS; k=k+1)
               if (queue[i].tags[k] == IN_issueUOps[j].tagDst) newAvail[i][k] = 1;
           end
@@ -348,8 +352,7 @@ module IssueQueue
           // Special handling for jalr
           if (HasFU(FU_BRANCH) && enqCandidates[i].fu == FU_BRANCH &&
           (enqCandidates[i].opcode == BR_V_JALR || enqCandidates[i].opcode == BR_V_JR ||
-          enqCandidates[i].opcode == BR_V_RET)
-          ) begin
+          enqCandidates[i].opcode == BR_V_RET)) begin
             assert(IMM_BITS == 36);
             assert(NUM_OPERANDS == 2);
 
@@ -384,3 +387,5 @@ end
 `endif
 
 endmodule
+
+`endif

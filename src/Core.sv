@@ -302,7 +302,7 @@ module Core (
         .NUM_OPERANDS((i < NUM_ALUS) ? 2 : 1),
         .NUM_UOPS(`DEC_WIDTH),
         .RESULT_BUS_COUNT(NUM_PORTS),
-        .IMM_BITS((i < NUM_ALUS) ? 36 : 12),
+        .IMM_BITS((i < NUM_ALUS) ? 64 + 4 : 12),
         .FUS(PORT_FUS[i])
       ) iq (
         .clk(clk),

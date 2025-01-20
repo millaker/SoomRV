@@ -28,11 +28,7 @@ module IntALU #(
 
   assign OUT_zcFwd.result = resC;
   assign OUT_zcFwd.tag = IN_uop.tagDst;
-  assign OUT_zcFwd.valid = IN_uop.valid && HasFU(
-    IN_uop.fu
-  ) && !IN_uop.tagDst[$bits(
-    Tag
-  )-1];
+  assign OUT_zcFwd.valid = IN_uop.valid && HasFU(IN_uop.fu) && !IN_uop.tagDst[$bits(Tag)-1];
 
   wire [ 5:0] resLzTz;
 
@@ -200,9 +196,7 @@ module IntALU #(
 
       if (rst);
       else if (IN_uop.valid && IN_uop.fu == FU_BRANCH &&
-      (!IN_branch.taken || $signed(
-      IN_uop.sqN - IN_branch.sqN
-      ) <= 0)) begin
+      (!IN_branch.taken || $signed(IN_uop.sqN - IN_branch.sqN) <= 0)) begin
         branch_c.sqN = IN_uop.sqN;
         branch_c.loadSqN = IN_uop.loadSqN;
         branch_c.storeSqN = IN_uop.storeSqN;
@@ -245,9 +239,7 @@ module IntALU #(
             if (IN_uop.opcode == BR_V_JALR || IN_uop.opcode == BR_V_JR) begin
               btUpdate_c.src = finalHalfwPC;
               btUpdate_c.fetchStartOffs = IN_uop.fetchStartOffs;
-              btUpdate_c.multiple = (
-              finalHalfwPC[1+:$bits(FetchOff_t)] >
-              IN_uop.fetchPredOffs);
+              btUpdate_c.multiple = (finalHalfwPC[1+:$bits(FetchOff_t)] > IN_uop.fetchPredOffs);
               btUpdate_c.multipleOffs = IN_uop.fetchPredOffs + 1;
               btUpdate_c.dst = indBranchDst;
               btUpdate_c.btype = (IN_uop.opcode == BR_V_JALR) ? BT_CALL : BT_JUMP;
