@@ -7,7 +7,7 @@ typedef logic [4:0] RegNm;
 typedef logic [`RF_SIZE_EXP:0] Tag;
 typedef logic [`RF_SIZE_EXP-1:0] RFTag;
 typedef logic [`ROB_SIZE_EXP:0] SqN;
-typedef logic [31:0] RegT;
+typedef logic [63:0] RegT;
 typedef logic [4:0] FetchID_t;
 typedef logic [`FSIZE_E-2:0] FetchOff_t;
 typedef logic [$clog2(`RETURN_SIZE)-1:0] RetStackIdx_t;
@@ -496,7 +496,7 @@ typedef struct packed {
 } ReturnDecUpdate;
 
 typedef struct packed {
-  logic [30:0] pc;
+  logic [62:0] pc;
   FetchOff_t branchPos;
   BranchPredInfo bpi;
 } PCFileEntry;
@@ -644,13 +644,13 @@ typedef struct packed {
 } RF_ReadReq;
 
 typedef struct packed {
-  logic [31:0] srcA;
-  logic [31:0] srcB;
-  logic [31:0] pc;
+  logic [63:0] srcA;
+  logic [63:0] srcB;
+  logic [63:0] pc;
   FetchOff_t fetchOffs;
   FetchOff_t fetchStartOffs;
   FetchOff_t fetchPredOffs;
-  logic [31:0] imm;
+  logic [63:0] imm;
   logic [5:0] opcode;
   Tag tagDst;
   SqN sqN;
@@ -681,7 +681,7 @@ typedef struct packed {
 } FlagsUOp  /* public */;
 
 typedef struct packed {
-  logic [31:0] result;
+  logic [63:0] result;
   Tag tagDst;
   logic doNotCommit;
   logic valid;
@@ -928,7 +928,7 @@ typedef struct packed {
 } BPUpdate;
 
 typedef struct packed {
-  logic [31:0] result;
+  logic [63:0] result;
   Tag tag;
   logic valid;
 } ZCForward;

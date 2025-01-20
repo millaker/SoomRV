@@ -1,3 +1,8 @@
+`ifndef LOAD_SV
+`define LOAD_SV
+
+`include "Include.sv"
+
 module Load #(
   parameter NUM_UOPS = 4,
   parameter NUM_WBS = 4,
@@ -25,7 +30,7 @@ module Load #(
 
   // Register File read
   output RF_ReadReq [NUM_ALUS*2+NUM_AGUS-1:0] OUT_rfReadReq,
-  input wire [NUM_ALUS*2+NUM_AGUS-1:0][31:0] IN_rfReadData,
+  input wire [NUM_ALUS*2+NUM_AGUS-1:0][63:0] IN_rfReadData,
 
   output EX_UOp OUT_uop[NUM_UOPS-1:0]
 );
@@ -39,8 +44,7 @@ module Load #(
       forwards[i] = IN_zcFwd[i];
     end
     for (integer i = 0; i < NUM_WBS; i = i + 1) begin
-      forwards[i+NUM_ZC_FWDS].valid = IN_resultUOps[i].valid && !IN_resultUOps[i].tagDst[$bits(
-        Tag)-1];
+      forwards[i+NUM_ZC_FWDS].valid = IN_resultUOps[i].valid && !IN_resultUOps[i].tagDst[$bits(Tag)-1];
       forwards[i+NUM_ZC_FWDS].tag = IN_resultUOps[i].tagDst;
       forwards[i+NUM_ZC_FWDS].result = IN_resultUOps[i].result;
     end
@@ -83,8 +87,7 @@ module Load #(
       // INT ports read a second register as well
       if (i < NUM_ALUS) begin
         OUT_rfReadReq[i+NUM_UOPS].tag = RFTag'(IN_uop[i].tagB);
-        OUT_rfReadReq[i+NUM_UOPS].valid = IN_uop[i].valid && !IN_uop[i].tagB[$bits(
-          Tag)-1];
+        OUT_rfReadReq[i+NUM_UOPS].valid = IN_uop[i].valid && !IN_uop[i].tagB[$bits(Tag)-1];
       end
 
       if (i < NUM_PC_READS) begin
@@ -115,7 +118,7 @@ module Load #(
         OUT_uop[i].bpi = '0;
         if (i < NUM_PC_READS) begin
           OUT_uop[i].pc = {
-          IN_pcReadData[i].pc[30:$bits(FetchOff_t)],
+          IN_pcReadData[i].pc[62:$bits(FetchOff_t)],
           outUOpReg[i].fetchOffs,
           1'b0
           };
@@ -167,7 +170,7 @@ module Load #(
           outUOpReg[i].srcA <= 'x;
           if (IN_uop[i].tagA[$bits(Tag)-1]) begin
             outUOpReg[i].srcA <= {
-            {26{IN_uop[i].tagA[5]}}, IN_uop[i].tagA[5:0]
+            {58{IN_uop[i].tagA[5]}}, IN_uop[i].tagA[5:0]
             };
           end else if (matchValid[i]) begin
             outUOpReg[i].srcA <= forwards[matchIdx[i]].result;
@@ -180,7 +183,7 @@ module Load #(
             outUOpReg[i].srcB <= IN_uop[i].imm;
           end else if (IN_uop[i].tagB[$bits(Tag)-1]) begin
             outUOpReg[i].srcB <= {
-            {26{IN_uop[i].tagB[5]}}, IN_uop[i].tagB[5:0]
+            {58{IN_uop[i].tagB[5]}}, IN_uop[i].tagB[5:0]
             };
           end else if (matchValid[NUM_UOPS+i]) begin
             outUOpReg[i].srcB <= forwards[matchIdx[NUM_UOPS+i]].result;
@@ -188,9 +191,8 @@ module Load #(
             operandIsReg[i][1] <= 1;
           end
         end
-        else if (!IN_stall[i] || (outUOpReg[i].valid && IN_branch.taken && $signed(
-        outUOpReg[i].sqN - IN_branch.sqN
-        ) > 0)) begin
+        else if (!IN_stall[i] || (outUOpReg[i].valid && IN_branch.taken
+        && $signed(outUOpReg[i].sqN - IN_branch.sqN) > 0)) begin
           outUOpReg[i] <= 'x;
           outUOpReg[i].valid <= 0;
         end else if (IN_stall[i]) begin
@@ -207,3 +209,5 @@ module Load #(
 
 
 endmodule
+
+`endif

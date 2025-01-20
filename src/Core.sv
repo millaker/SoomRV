@@ -380,9 +380,7 @@ module Core (
     .IN_readData(RF_readDataRaw)
   );
 
-  RegFile #(32, 1 << $bits(
-    RFTag
-    ), NUM_RF_READS_PHY, NUM_RF_WRITES, 1) rf (
+  RegFile #(64, 1 << $bits(RFTag), NUM_RF_READS_PHY, NUM_RF_WRITES, 1) rf (
     .clk(clk),
 
     .IN_re(RF_readEnable),
