@@ -934,10 +934,10 @@ typedef struct packed {
 } ZCForward;
 
 typedef struct packed {
-  logic [30:0] retvec;
-  logic [29:0] mtvec;
+  logic [62:0] retvec;
+  logic [61:0] mtvec;
   logic mvectord;
-  logic [29:0] stvec;
+  logic [61:0] stvec;
   logic svectord;
   logic [15:0] medeleg;
   logic [15:0] mideleg;
@@ -949,11 +949,11 @@ typedef struct packed {
 
 } TrapControlState;
 
-typedef struct packed {logic [31:0] tval;} TValState;
+typedef struct packed {logic [63:0] tval;} TValState;
 
 typedef struct packed {
-  logic [31:0] trapPC;
-  logic [31:0] finalHalfwPC;
+  logic [63:0] trapPC;
+  logic [63:0] finalHalfwPC;
   logic isInterrupt;
   TrapCause_t cause;
   logic delegate;

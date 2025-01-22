@@ -41,7 +41,7 @@ parameter FETCH_WORDS = 1 << (`FSIZE_E - 1);
 `define RF_SIZE_EXP 6
 
 // PC at reset
-`define ENTRY_POINT (32'h8000_0000)
+`define ENTRY_POINT (64'h8000_0000)
 
 
 // PMAs

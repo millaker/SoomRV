@@ -71,9 +71,6 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
     CSR_hpmcounter30,
     CSR_hpmcounter31=12'hC1F,
 
-    CSR_cycleh=12'hC80,
-    CSR_timeh=12'hC81,
-    CSR_instreth=12'hC82,
     CSR_hpmcounter3h=12'hC83,
     CSR_hpmcounter4h=12'hC84,
     CSR_hpmcounter5h=12'hC85,
@@ -135,7 +132,6 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
     CSR_mie=12'h304, // interrupt enable
     CSR_mtvec=12'h305, // trap handler
     CSR_mcounteren=12'h306,
-    CSR_mstatush=12'h310,
 
     CSR_mscratch=12'h340,
     CSR_mepc=12'h341,
@@ -146,9 +142,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
     CSR_mtval2=12'h34B,
 
     CSR_menvcfg=12'h30A,
-    CSR_menvcfgh=12'h31A,
     CSR_mseccfg=12'h747,
-    CSR_mseccfgh=12'h757,
 
 
     CSR_pmpcfg0=12'h3A0,
@@ -196,38 +190,6 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
     CSR_mhpmcounter29,
     CSR_mhpmcounter30,
     CSR_mhpmcounter31=12'hB1F,
-
-    CSR_mcycleh=12'hB80,
-    CSR_minstreth=12'hB82,
-    CSR_mhpmcounter3h=12'hB83,
-    CSR_mhpmcounter4h=12'hB84,
-    CSR_mhpmcounter5h,
-    CSR_mhpmcounter6h,
-    CSR_mhpmcounter7h,
-    CSR_mhpmcounter8h,
-    CSR_mhpmcounter9h,
-    CSR_mhpmcounter10h,
-    CSR_mhpmcounter11h,
-    CSR_mhpmcounter12h,
-    CSR_mhpmcounter13h,
-    CSR_mhpmcounter14h,
-    CSR_mhpmcounter15h,
-    CSR_mhpmcounter16h,
-    CSR_mhpmcounter17h,
-    CSR_mhpmcounter18h,
-    CSR_mhpmcounter19h,
-    CSR_mhpmcounter20h,
-    CSR_mhpmcounter21h,
-    CSR_mhpmcounter22h,
-    CSR_mhpmcounter23h,
-    CSR_mhpmcounter24h,
-    CSR_mhpmcounter25h,
-    CSR_mhpmcounter26h,
-    CSR_mhpmcounter27h,
-    CSR_mhpmcounter28h,
-    CSR_mhpmcounter29h,
-    CSR_mhpmcounter30h,
-    CSR_mhpmcounter31h=12'hB9F,
 
     CSR_mcountinhibit=12'h320,
     CSR_mhpmevent3=12'h323,
@@ -289,6 +251,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
   reg[63:0] minstret /*verilator public*/;
   reg[63:0] mhpmcounter[NUM_PERFC-1:0] /*verilator public*/; // branches
 
+  /*
   typedef struct packed
   {
     logic sd; // state dirty (0)
@@ -313,29 +276,59 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
     logic sie; // supervisor interrupt enable
     logic wpri0; // (0)
   } MStatus_t;
+   */
+
+  typedef struct packed {
+    logic sd;
+    logic [24:0] wpri25;
+    logic mbe;
+    logic sbe;
+    logic [1:0] sxl;
+    logic [1:0] uxl;
+    logic [8:0] wpri9;
+    logic tsr;
+    logic tw;
+    logic tvm;
+    logic mxr;
+    logic sum;
+    logic mprv;
+    logic [1:0] xs;
+    logic [1:0] fs;
+    PrivLevel mpp;
+    logic [1:0] vs;
+    logic spp;
+    logic mpie;
+    logic ube;
+    logic spie;
+    logic wpri4;
+    logic mie;
+    logic wpri2;
+    logic sie;
+    logic wpri0;
+  } MStatus_t;
 
   MStatus_t mstatus;
 
   typedef struct packed
   {
-    logic[29:0] base;
+    logic[61:0] base;
     logic[1:0] mode;
   } TVec_t;
 
   TVec_t mtvec;
   TVec_t stvec;
 
-  reg[31:0] mscratch;
+  reg[63:0] mscratch;
 
-  reg[31:0] mepc;
-  reg[31:0] mcause;
-  reg[31:0] mtval;
+  reg[63:0] mepc;
+  reg[63:0] mcause;
+  reg[63:0] mtval;
   reg[15:0] medeleg;
   reg[15:0] mideleg;
   reg[15:0] mip;
   reg[15:0] mie;
-  reg[31:0] mcounteren;
-  reg[31:0] mcountinhibit;
+  reg[63:0] mcounteren;
+  reg[63:0] mcountinhibit;
 
   typedef struct packed
   {
@@ -349,11 +342,11 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
   MEnvCfg_t menvcfg;
   MEnvCfg_t senvcfg;
 
-  reg[31:0] scounteren;
-  reg[31:0] sepc;
-  reg[31:0] sscratch;
-  reg[31:0] scause;
-  reg[31:0] stval;
+  reg[63:0] scounteren;
+  reg[63:0] sepc;
+  reg[63:0] sscratch;
+  reg[63:0] scause;
+  reg[63:0] stval;
 
   reg misa_X; // enable/disable for custom instrs
 
@@ -364,7 +357,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
     logic[21:0] ppn;
   } satp;
 
-  reg[30:0] retvec;
+  reg[62:0] retvec;
 
   reg interrupt;
   TrapCause_t interruptCause;
@@ -437,10 +430,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
     end
 
     vmem_c.cbcfe =
-    !(
-    (priv != PRIV_MACHINE && !menvcfg.cbcfe) ||
-    (priv == PRIV_USER && !senvcfg.cbcfe)
-    );
+    !((priv != PRIV_MACHINE && !menvcfg.cbcfe) || (priv == PRIV_USER && !senvcfg.cbcfe));
 
     if ((priv != PRIV_MACHINE && menvcfg.cbie == 0) ||
     (priv == PRIV_USER && senvcfg.cbie == 0))
@@ -454,14 +444,14 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
 
   always_ff@(posedge clk) OUT_vmem <= vmem_c;
 
-  reg[31:0] rdata;
+  reg[63:0] rdata;
   reg invalidCSR;
   always_comb begin
 
     MStatus_t temp = 0;
 
     invalidCSR = 0;
-    rdata = 32'bx;
+    rdata = 64'bx;
 
     case (IN_uop.imm[11:0])
 `ifdef ENABLE_FP
@@ -471,65 +461,44 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
 `endif
 
       CSR_time,
-      CSR_timeh: begin
-        invalidCSR = !((priv == PRIV_MACHINE) ||
-        (priv == PRIV_SUPERVISOR && mcounteren[1]) ||
-        (priv == PRIV_USER && mcounteren[1] && scounteren[1]));
-        rdata = (IN_uop.imm[11:0] == CSR_time) ? IF_mmio.mtime[31:0] : IF_mmio.mtime[63:32];
-      end
-
       CSR_cycle: begin
         invalidCSR = !((priv == PRIV_MACHINE) ||
         (priv == PRIV_SUPERVISOR && mcounteren[0]) ||
         (priv == PRIV_USER && mcounteren[0] && scounteren[0]));
-        rdata = mcycle[31:0];
-      end
-      CSR_cycleh: begin
-        invalidCSR = !((priv == PRIV_MACHINE) ||
-        (priv == PRIV_SUPERVISOR && mcounteren[0]) ||
-        (priv == PRIV_USER && mcounteren[0] && scounteren[0]));
-        rdata = mcycle[63:32];
+        rdata = mcycle;
       end
 
       CSR_instret: begin
         invalidCSR = !((priv == PRIV_MACHINE) ||
         (priv == PRIV_SUPERVISOR && mcounteren[2]) ||
         (priv == PRIV_USER && mcounteren[2] && scounteren[2]));
-        rdata = minstret[31:0];
-      end
-      CSR_instreth: begin
-        invalidCSR = !((priv == PRIV_MACHINE) ||
-        (priv == PRIV_SUPERVISOR && mcounteren[2]) ||
-        (priv == PRIV_USER && mcounteren[2] && scounteren[2]));
-        rdata = minstret[63:32];
+        rdata = minstret;
       end
 
-      CSR_misa: rdata = 32'b01_0000_00000101000001000100000101 | {8'b0, misa_X, 23'b0};
-      CSR_marchid: rdata = 32'h50087502;
-      CSR_mimpid: rdata = 32'h50087532;
+      CSR_misa: rdata = 64'd0;
+      CSR_marchid: rdata = 64'h50087502;
+      CSR_mimpid: rdata = 64'h50087532;
       CSR_mstatus: rdata = mstatus;
 
-      CSR_mcycle: rdata = mcycle[31:0];
-      CSR_mcycleh: rdata = mcycle[63:32];
+      CSR_mcycle: rdata = mcycle;
 
-      CSR_minstret: rdata = minstret[31:0];
-      CSR_minstreth: rdata = minstret[63:32];
+      CSR_minstret: rdata = minstret;
 
       CSR_mcounteren: rdata = mcounteren;
       CSR_mcountinhibit: rdata = mcountinhibit;
 
       CSR_mtvec: rdata = mtvec;
-      CSR_medeleg: rdata = {16'b0, medeleg};
-      CSR_mideleg: rdata = {16'b0, mideleg};
+      CSR_medeleg: rdata = {48'b0, medeleg};
+      CSR_mideleg: rdata = {48'b0, mideleg};
 
-      CSR_mip: rdata = {16'b0, mip};
-      CSR_mie: rdata = {16'b0, mie};
+      CSR_mip: rdata = {48'b0, mip};
+      CSR_mie: rdata = {48'b0, mie};
 
       CSR_mscratch: rdata = mscratch;
       CSR_mepc: rdata = mepc;
       CSR_mcause: rdata = mcause;
       CSR_mtval: rdata = mtval;
-      CSR_menvcfg: rdata = menvcfg;
+      CSR_menvcfg: rdata = {32'd0, menvcfg};
 
       CSR_sstatus: begin
         temp.sie = mstatus.sie;
@@ -537,7 +506,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
         temp.ube = mstatus.ube;
         temp.spp = mstatus.spp;
         temp.vs = mstatus.vs;
-        temp.fs_ = mstatus.fs_;
+        temp.fs = mstatus.fs;
         temp.xs = mstatus.xs;
         temp.sum = mstatus.sum;
         temp.mxr = mstatus.mxr;
@@ -571,21 +540,19 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
 
       CSR_satp: begin
         invalidCSR = mstatus.tvm;
-        rdata = satp;
+        rdata = {32'd0, satp};
       end
-      CSR_senvcfg: rdata = senvcfg;
+      CSR_senvcfg: rdata = {32'd0, senvcfg};
 
       CSR_mhpmevent3: rdata = 3;
       CSR_mhpmevent4: rdata = 4;
       CSR_mhpmevent5: rdata = 5;
 
-      CSR_magic: rdata = 32'h88980f;
+      CSR_magic: rdata = 64'h88980f;
 
       // read-only zero CSRs
-      CSR_menvcfgh,
       CSR_mvendorid,
       CSR_mconfigptr,
-      CSR_mstatush,
       CSR_mhartid,
       CSR_tselect,
       CSR_tdata1,
@@ -612,12 +579,6 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
       CSR_mhpmcounter21, CSR_mhpmcounter22, CSR_mhpmcounter23, CSR_mhpmcounter24, CSR_mhpmcounter25, CSR_mhpmcounter26,
       CSR_mhpmcounter27, CSR_mhpmcounter28, CSR_mhpmcounter29, CSR_mhpmcounter30, CSR_mhpmcounter31,
 
-      CSR_mhpmcounter6h, CSR_mhpmcounter7h, CSR_mhpmcounter8h,
-      CSR_mhpmcounter9h, CSR_mhpmcounter10h, CSR_mhpmcounter11h, CSR_mhpmcounter12h, CSR_mhpmcounter13h, CSR_mhpmcounter14h,
-      CSR_mhpmcounter15h, CSR_mhpmcounter16h, CSR_mhpmcounter17h, CSR_mhpmcounter18h, CSR_mhpmcounter19h, CSR_mhpmcounter20h,
-      CSR_mhpmcounter21h, CSR_mhpmcounter22h, CSR_mhpmcounter23h, CSR_mhpmcounter24h, CSR_mhpmcounter25h, CSR_mhpmcounter26h,
-      CSR_mhpmcounter27h, CSR_mhpmcounter28h, CSR_mhpmcounter29h, CSR_mhpmcounter30h, CSR_mhpmcounter31h,
-
       CSR_mhpmevent6, CSR_mhpmevent7, CSR_mhpmevent8, CSR_mhpmevent9, CSR_mhpmevent10, CSR_mhpmevent11,
       CSR_mhpmevent12, CSR_mhpmevent13, CSR_mhpmevent14, CSR_mhpmevent15, CSR_mhpmevent16, CSR_mhpmevent17,
       CSR_mhpmevent18, CSR_mhpmevent19, CSR_mhpmevent20, CSR_mhpmevent21, CSR_mhpmevent22, CSR_mhpmevent23,
@@ -632,21 +593,19 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
     for (integer i = 3; i < NUM_PERFC; i++) begin
       // unprivileged copies
       CSR_Id hpm = CSR_cycle + CSR_Id'(i);
-      CSR_Id hpmh = CSR_cycleh + CSR_Id'(i);
 
       // privileged
       CSR_Id mhpm = CSR_mcycle + CSR_Id'(i);
-      CSR_Id mhpmh = CSR_mcycleh + CSR_Id'(i);
 
-      if (IN_uop.imm[11:0] == mhpm || IN_uop.imm[11:0] == mhpmh) begin
-        rdata = (IN_uop.imm[11:0] == mhpm) ? mhpmcounter[i][31:0] : mhpmcounter[i][63:32];
+      if (IN_uop.imm[11:0] == mhpm) begin
+        rdata = mhpmcounter[i];
         invalidCSR = 0;
       end
-      else if (IN_uop.imm[11:0] == hpm || IN_uop.imm[11:0] == hpmh) begin
+      else if (IN_uop.imm[11:0] == hpm) begin
         invalidCSR = !((priv == PRIV_MACHINE) ||
         (priv == PRIV_SUPERVISOR && mcounteren[i]) ||
         (priv == PRIV_USER && mcounteren[i] && scounteren[i]));
-        rdata = (IN_uop.imm[11:0] == hpm) ? mhpmcounter[i][31:0] : mhpmcounter[i][63:32];
+        rdata = mhpmcounter[i];
       end
     end
   end
@@ -663,7 +622,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
       minstret <= 0;
       mcounteren <= 0;
       mcountinhibit <= 0;
-      mtvec.base <= 30'((`ENTRY_POINT) >> 2);
+      mtvec.base <= 62'((`ENTRY_POINT) >> 2);
       mtvec.mode <= 0;
       mepc <= 0;
       mcause <= 0;
@@ -678,7 +637,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
       sepc <= 0;
       scause <= 0;
       stval <= 0;
-      stvec.base <= 30'((`ENTRY_POINT) >> 2);
+      stvec.base <= 62'((`ENTRY_POINT) >> 2);
       stvec.mode <= 0;
       satp <= 0;
       senvcfg <= 0;
@@ -696,7 +655,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
       // CSR writes on trap/interrupt
       if (IN_trapInfo.valid) begin
 
-        reg[31:0] tval = 0;
+        reg[63:0] tval = 0;
 
         if (!IN_trapInfo.isInterrupt)
           case (IN_trapInfo.cause)
@@ -804,7 +763,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
               if (mstatus.mpp != PRIV_MACHINE)
                 mstatus.mprv <= 0;
 
-              retvec <= mepc[31:1];
+              retvec <= mepc[63:1];
             end
           end
           else begin
@@ -817,7 +776,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
               mstatus.spp <= 1'b0;
               mstatus.mprv <= 0;
 
-              retvec <= sepc[31:1];
+              retvec <= sepc[63:1];
             end
           end
 
@@ -829,7 +788,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
           else begin
             // Do write?
             if (IN_uop.opcode != CSR_R) begin
-              reg[31:0] wdata;
+              reg[63:0] wdata;
 
               // For CSRs with out-of-order implicit reads, we need to flush the pipeline
               case (IN_uop.imm[11:0])
@@ -857,7 +816,6 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
                 CSR_mie,
                 //CSR_mtvec,
                 CSR_mcounteren,
-                CSR_mstatush,
                 //CSR_mscratch,
                 //CSR_mepc,
                 //CSR_mcause,
@@ -881,22 +839,20 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
                 case (IN_uop.opcode)
 
                   CSR_RW: wdata = IN_uop.srcA;
-                  CSR_RW_I: wdata = {27'b0, IN_uop.imm[16:12]};
+                  CSR_RW_I: wdata = {59'b0, IN_uop.imm[16:12]};
 
                   CSR_RS: wdata = rdata | IN_uop.srcA;
-                  CSR_RS_I: wdata = rdata | {27'b0, IN_uop.imm[16:12]};
+                  CSR_RS_I: wdata = rdata | {59'b0, IN_uop.imm[16:12]};
 
                   CSR_RC: wdata = rdata & (~IN_uop.srcA);
-                  CSR_RC_I: wdata = rdata & (~{27'b0, IN_uop.imm[16:12]});
+                  CSR_RC_I: wdata = rdata & (~{59'b0, IN_uop.imm[16:12]});
 
                   default: begin end
                 endcase
 
                 for (integer i = 3; i <= 11; i=i+1) begin
                   if (IN_uop.imm[11:0] == CSR_Id'(i) + CSR_mcycle)
-                    mhpmcounter[i][31:0] <= wdata;
-                  if (IN_uop.imm[11:0] == CSR_Id'(i) + CSR_mcycleh)
-                    mhpmcounter[i][63:32] <= wdata;
+                    mhpmcounter[i] <= wdata;
                 end
                 case (IN_uop.imm[11:0])
     `ifdef ENABLE_FP
@@ -921,15 +877,13 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
                     mstatus.spp <= temp.spp;
                     mstatus.mpp <= temp.mpp;
 
-                    mstatus.fs_ <= temp.fs_;
-                    mstatus.sd <= |temp.fs_;
+                    mstatus.fs <= temp.fs;
+                    mstatus.sd <= |temp.fs;
                   end
 
-                  CSR_mcycle: mcycle[31:0] <= wdata;
-                  CSR_mcycleh: mcycle[63:32] <= wdata;
+                  CSR_mcycle: mcycle <= wdata;
 
-                  CSR_minstret: minstret[31:0] <= wdata;
-                  CSR_minstreth: minstret[63:32] <= wdata;
+                  CSR_minstret: minstret <= wdata;
 
                   CSR_mcounteren: mcounteren[31:0] <= wdata[31:0];
                   CSR_mcountinhibit: begin
@@ -941,11 +895,11 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
                   end
 
                   CSR_mtvec: begin
-                    mtvec.base <= wdata[31:2];
+                    mtvec.base <= wdata[63:2];
                     //mtvec.mode[0] <= wdata[0];
                   end
                   CSR_menvcfg: begin
-                    MEnvCfg_t temp = wdata;
+                    MEnvCfg_t temp = wdata[31:0];
 
                     menvcfg.fiom <= temp.fiom;
                     menvcfg.cbie <= (temp.cbie == 2'b10) ? 0 : temp.cbie;
@@ -1006,7 +960,7 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
                   end
                   CSR_stval: stval <= wdata;
                   CSR_stvec: begin
-                    stvec.base <= wdata[31:2];
+                    stvec.base <= wdata[63:2];
                     //stvec.mode[0] <= wdata[0];
                   end
 
@@ -1029,14 +983,14 @@ module CSR#(parameter NUM_FLOAT_FLAG_UPD = 2)
                   end
 
                   CSR_satp: begin
-                    satp <= wdata;
+                    satp <= wdata[31:0];
                     // we only support 32 bits of physical address space.
                     satp.ppn[21:20] <= 2'b0;
                     satp.asid <= 0;
                   end
 
                   CSR_senvcfg: begin
-                    MEnvCfg_t temp = wdata;
+                    MEnvCfg_t temp = wdata[31:0];
 
                     senvcfg.fiom <= temp.fiom;
                     senvcfg.cbie <= (temp.cbie == 2'b10) ? 0 : temp.cbie;
