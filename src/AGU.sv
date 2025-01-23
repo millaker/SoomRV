@@ -50,7 +50,7 @@ module AGU #(
   assign OUT_stall = (OUT_TMQ_free == 0);
 
 
-  wire [31:0] addr = IN_uop.srcA + IN_uop.srcB;
+  wire [63:0] addr = IN_uop.srcA + IN_uop.srcB;
 
   // Address Calculation for incoming UOps
   AGU_UOp aguUOp_c;
@@ -98,6 +98,14 @@ module AGU #(
           aguUOp_c.size = 2;
           aguUOp_c.signExtend = 0;
         end
+        LSU_LWU: begin
+          aguUOp_c.size = 2;
+          aguUOp_c.signExtend = 1;
+        end
+        LSU_LD: begin
+          aguUOp_c.size = 3;
+          aguUOp_c.signExtend = 0;
+        end
         LSU_LBU: begin
           aguUOp_c.size = 0;
           aguUOp_c.signExtend = 0;
@@ -114,50 +122,81 @@ module AGU #(
       aguUOp_c.doNotCommit = 0;
 
       // default
-      aguUOp_c.wmask = 4'b1111;
+      aguUOp_c.wmask = 8'b11111111;
       aguUOp_c.size = 2;
 
       case (IN_uop.opcode)
 
         LSU_SB: begin
           aguUOp_c.size = 0;
-          case (addr[1:0])
+          case (addr[2:0])
             0: begin
-              aguUOp_c.wmask = 4'b0001;
+              aguUOp_c.wmask = 8'b00000001;
             end
             1: begin
-              aguUOp_c.wmask = 4'b0010;
+              aguUOp_c.wmask = 8'b00000010;
             end
             2: begin
-              aguUOp_c.wmask = 4'b0100;
+              aguUOp_c.wmask = 8'b00000100;
             end
             3: begin
-              aguUOp_c.wmask = 4'b1000;
+              aguUOp_c.wmask = 8'b00001000;
+            end
+            4: begin
+              aguUOp_c.wmask = 8'b00010000;
+            end
+            5: begin
+              aguUOp_c.wmask = 8'b00100000;
+            end
+            6: begin
+              aguUOp_c.wmask = 8'b01000000;
+            end
+            7: begin
+              aguUOp_c.wmask = 8'b10000000;
             end
           endcase
         end
 
         LSU_SH: begin
           aguUOp_c.size = 1;
-          case (addr[1])
+          case (addr[2:1])
             0: begin
-              aguUOp_c.wmask = 4'b0011;
+              aguUOp_c.wmask = 8'b00000011;
             end
             1: begin
-              aguUOp_c.wmask = 4'b1100;
+              aguUOp_c.wmask = 8'b00001100;
+            end
+            2: begin
+              aguUOp_c.wmask = 8'b00110000;
+            end
+            3: begin
+              aguUOp_c.wmask = 8'b11000000;
             end
           endcase
         end
 
         LSU_SC_W: begin
           aguUOp_c.isLrSc = 1;
-          aguUOp_c.wmask  = 4'b1111;
+          aguUOp_c.wmask  = 8'b00001111;
           // The 0/1 write is handled by rename, do not write anything.
           aguUOp_c.tagDst = TAG_ZERO;
         end
 
         LSU_SW: begin
-          aguUOp_c.wmask = 4'b1111;
+          aguUOp_c.size = 2;
+          case(addr[2])
+            0: begin
+              aguUOp_c.wmask = 8'b00001111;
+            end
+            1: begin
+              aguUOp_c.wmask = 8'b11110000;
+            end
+          endcase
+        end
+
+        LSU_SD: begin
+          aguUOp_c.size = 3;
+          aguUOp_c.wmask = 8'b11111111;
         end
 
         LSU_CBO_CLEAN: begin
@@ -263,8 +302,8 @@ module AGU #(
   always_comb begin
     OUT_eldOp = 'x;
     OUT_eldOp.valid =
-    !rst && issUOp_c.valid && issUOp_c.isLoad && (!IN_branch.taken || $signed(
-      issUOp_c.sqN - IN_branch.sqN) <= 0);
+    !rst && issUOp_c.valid && issUOp_c.isLoad &&
+    (!IN_branch.taken || $signed(issUOp_c.sqN - IN_branch.sqN) <= 0);
 
     if (OUT_eldOp.valid) OUT_eldOp.addr = issUOp_c.addr[11:0];
   end
@@ -277,7 +316,8 @@ module AGU #(
   end
 
 
-  wire[31:0] phyAddr = IN_vmem.sv32en ? {IN_tlb.ppn, issUOp_c.addr[11:0]} : issUOp_c.addr; // super is already handled in TLB
+  /* virtual address padded with 32-bit zero for compilation */
+  wire[63:0] phyAddr = IN_vmem.sv32en ? {32'd0, IN_tlb.ppn, issUOp_c.addr[11:0]} : issUOp_c.addr; // super is already handled in TLB
   Flags exceptFlags;
   always_comb begin
     exceptFlags = FLAGS_NONE;
@@ -287,13 +327,10 @@ module AGU #(
     if (issUOp_c.isStore && issUOp_c.wmask == 0)
       exceptFlags = FLAGS_ORDERING;
 
-    if (IN_vmem.sv32en && IN_tlb.hit && (IN_tlb.pageFault || IsPermFault(
-    IN_tlb.rwx, IN_tlb.user, issUOp_c.isLoad, issUOp_c.isStore
-    ))) begin
+    if (IN_vmem.sv32en && IN_tlb.hit
+    && (IN_tlb.pageFault || IsPermFault(IN_tlb.rwx, IN_tlb.user, issUOp_c.isLoad, issUOp_c.isStore))) begin
       exceptFlags = issUOp_c.isStore ? FLAGS_ST_PF : FLAGS_LD_PF;
-    end else if ((!
-    `IS_LEGAL_ADDR(phyAddr)
-    || IN_tlb.accessFault) && !(IN_vmem.sv32en && !IN_tlb.hit)) begin
+    end else if ((!`IS_LEGAL_ADDR(phyAddr)|| IN_tlb.accessFault) && !(IN_vmem.sv32en && !IN_tlb.hit)) begin
       exceptFlags = issUOp_c.isStore ? FLAGS_ST_AF : FLAGS_LD_AF;
     end
 
@@ -341,10 +378,9 @@ module AGU #(
     TMQ_enqueue = 0;
     TMQ_uopReady = 'x;
 
-    if (issUOp_c.valid && (!IN_branch.taken || $signed(
-    issUOp_c.sqN - IN_branch.sqN
-    ) <= 0) && (IN_vmem.sv32en && exceptFlags == FLAGS_NONE &&
-    !IN_tlb.hit)) begin
+    if (issUOp_c.valid && (!IN_branch.taken || $signed(issUOp_c.sqN - IN_branch.sqN) <= 0)
+    && (IN_vmem.sv32en && exceptFlags == FLAGS_NONE
+    && !IN_tlb.hit)) begin
       tlbMiss = 1;
       TMQ_enqueue = 1;
       TMQ_uopReady = 0;
@@ -368,9 +404,7 @@ module AGU #(
       // Page Walk Request Logic
       if (pageWalkActive) begin
         if (!pageWalkAccepted) begin
-          if (IN_pw.busy && IN_pw.rqID == $bits(
-          IN_pw.rqID
-          )'(RQ_ID)) begin
+          if (IN_pw.busy && IN_pw.rqID == $bits(IN_pw.rqID)'(RQ_ID)) begin
             pageWalkAccepted <= 1;
           end else begin
             OUT_pw.valid <= 1;
@@ -384,9 +418,8 @@ module AGU #(
       end
 
       // Pipeline
-      if (issUOp_c.valid && (!IN_branch.taken || $signed(
-      issUOp_c.sqN - IN_branch.sqN
-      ) <= 0)) begin
+      /* If sv32vmem not enabled, pageWalk will not be triggered */
+      if (issUOp_c.valid && (!IN_branch.taken || $signed(issUOp_c.sqN - IN_branch.sqN) <= 0)) begin
 
         reg doIssue = 1;
         if (exceptFlags != FLAGS_ILLEGAL_INSTR) begin
@@ -394,7 +427,7 @@ module AGU #(
             if (!pageWalkActive) begin
               pageWalkActive <= 1;
               pageWalkAccepted <= 0;
-              pageWalkAddr <= issUOp_c.addr;
+              pageWalkAddr <= issUOp_c.addr[31:0];
             end
             doIssue = 0;
           end

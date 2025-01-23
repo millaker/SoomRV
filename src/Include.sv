@@ -695,9 +695,9 @@ typedef struct packed {
 } AMO_Data_UOp;
 
 typedef struct packed {
-  logic [31:0] addr;
+  logic [63:0] addr;
   // could union some of these fields
-  logic [3:0] wmask;
+  logic [7:0] wmask;
   logic signExtend;
   logic [1:0] size;
   logic isStore; // both isLoad and isStore may be set (for atomics)
@@ -984,7 +984,7 @@ typedef struct packed {
 } DecodeState;
 
 typedef struct packed {
-  logic [31:0] tval;
+  logic [63:0] tval;
   SqN sqN;
   logic valid;
 } TValProv;

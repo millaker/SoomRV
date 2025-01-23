@@ -46,7 +46,7 @@ parameter FETCH_WORDS = 1 << (`FSIZE_E - 1);
 
 // PMAs
 `define IS_MMIO_PMA(addr) \
-    ((addr) < 32'h8000_0000)
+    ((addr) < 64'h8000_0000)
 
 `define IS_MMIO_PMA_W(addr) \
     `IS_MMIO_PMA({(addr), 2'b0})
@@ -73,12 +73,12 @@ parameter FETCH_WORDS = 1 << (`FSIZE_E - 1);
 `define EXT_MMIO_END_ADDR 32'h1100_0000
 
 `define IS_MEM_PMA(addr) \
-    ((addr) >= 32'h80000000 && (addr) < 32'h90000000)
+    ((addr) >= 64'h80000000 && (addr) < 64'h90000000)
 
 // 256 MiB main memory or MMIO
 `define IS_LEGAL_ADDR(addr) \
     (`IS_MEM_PMA(addr) || \
-    (`IS_MMIO_PMA(addr) && (addr) >= 32'h10000000))
+    (`IS_MMIO_PMA(addr) && (addr) >= 64'h10000000))
 
 
 // Enable floating point (zfinx) support
