@@ -42,10 +42,10 @@ module StoreQueue
   typedef struct packed
   {
     RegT data;
-    logic[29:0] addr;
+    logic[61:0] addr;
 
     // wmask == 0 is escape sequence for special operations
-    logic[3:0] wmask;
+    logic[7:0] wmask;
     logic loaded;
     logic addrAvail;
   } SQEntry;
@@ -113,47 +113,48 @@ wire[NUM_ENTRIES-1:0] forwardRange_c[NUM_AGUS-1:0];
 
   typedef enum logic[0:0] {LOAD, STORE_FUSE} LookupType;
 
-  reg[31:0] lookupAddr[NUM_AGUS-1:0];
+  reg[63:0] lookupAddr[NUM_AGUS-1:0];
   always_comb begin
     for (integer h = 0; h < NUM_AGUS; h=h+1)
       lookupAddr[h] = IN_uopLd[h].addr;
   end
 
-  reg[3:0] readMask[NUM_AGUS-1:0];
+  reg[7:0] readMask[NUM_AGUS-1:0];
   always_comb begin
     for (integer i = 0; i < NUM_AGUS; i=i+1) begin
-      readMask[i] = 4'b1111;
+      readMask[i] = 8'b11111111;
       if (IN_uopLd[i].valid)
         case (IN_uopLd[i].size)
-          0: readMask[i] = (4'b1 << IN_uopLd[i].addr[1:0]);
-          1: readMask[i] = ((IN_uopLd[i].addr[1:0] == 2) ? 4'b1100 : 4'b0011);
-          default: readMask[i] = 4'b1111;
+          0: readMask[i] = (8'b1 << IN_uopLd[i].addr[2:0]);
+          1: readMask[i] = (8'b11 << (IN_uopLd[i].addr[2:1] << 1));
+          2: readMask[i] = ((IN_uopLd[i].addr[2]) ? 8'b11110000: 8'b00001111);
+          default: readMask[i] = 8'b11111111;
         endcase
     end
   end
 
-  reg[3:0] lookupMask[NUM_AGUS-1:0];
-  reg[31:0] lookupData[NUM_AGUS-1:0];
+  reg[7:0] lookupMask[NUM_AGUS-1:0];
+  reg[63:0] lookupData[NUM_AGUS-1:0];
   reg lookupConflict[NUM_AGUS-1:0];
   // Store queue lookup
   for (genvar h = 0; h < NUM_AGUS; h=h+1)
     always_comb begin
 
-      reg[31:0] data = 'x;
-      reg[3:0] mask = 'x;
+      reg[63:0] data = 'x;
+      reg[7:0] mask = 'x;
 
       // Bytes that are not read by this op are set to available in the lookup mask
       // (could also do this in LSU)
       lookupMask[h] = ~readMask[h];
-      lookupData[h] = 32'bx;
+      lookupData[h] = 64'bx;
       lookupConflict[h] = 0;
 
       for (integer i = 0; i < NUM_OUT; i=i+1) begin
         if (OUT_uop[i].valid &&
-        OUT_uop[i].addr[31:2] == lookupAddr[h][31:2] &&
+        OUT_uop[i].addr[63:2] == lookupAddr[h][63:2] &&
         !`IS_MMIO_PMA(OUT_uop[i].addr)
         ) begin
-          for (integer j = 0; j < 4; j=j+1)
+          for (integer j = 0; j < 8; j=j+1)
             if (OUT_uop[i].wmask[j])
               lookupData[h][j*8 +: 8] = OUT_uop[i].data[j*8 +: 8];
           lookupMask[h] = lookupMask[h] | OUT_uop[i].wmask;
@@ -166,14 +167,14 @@ wire[NUM_ENTRIES-1:0] forwardRange_c[NUM_AGUS-1:0];
         integer ii = i % NUM_ENTRIES;
 
         if (entries[ii].addrAvail &&
-        entries[ii].addr == lookupAddr[h][31:2] &&
+        entries[ii].addr == lookupAddr[h][63:2] &&
         (forwardRange_c[h][i] || (i < NUM_ENTRIES && entryReady_r[ii])) &&
         !`IS_MMIO_PMA_W(entries[ii].addr)
         ) begin
 
           if (entries[ii].loaded) begin
 
-            for (integer j = 0; j < 4; j=j+1)
+            for (integer j = 0; j < 8; j=j+1)
               if (entries[ii].wmask[j]) begin
                 lookupData[h][j*8 +: 8] = entries[ii].data[j*8 +: 8];
                 lookupMask[h][j] = 1;
@@ -428,7 +429,7 @@ endgenerate
           assert(IN_uopSt[i].storeSqN <= nextBaseIndex + NUM_ENTRIES[$bits(SqN)-1:0] - 1);
           assert(!entries[index].addrAvail);
 
-          entries[index].addr <= IN_uopSt[i].addr[31:2];
+          entries[index].addr <= IN_uopSt[i].addr[63:2];
           entries[index].wmask <= IN_uopSt[i].wmask;
           entries[index].addrAvail <= 1;
 

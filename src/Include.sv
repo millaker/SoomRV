@@ -716,7 +716,7 @@ typedef struct packed {
 } AGU_UOp;
 
 typedef struct packed {
-  logic [31:0] data;
+  logic [63:0] data;
   SqN storeSqN;
   logic valid;
 } StDataUOp;
@@ -859,8 +859,8 @@ typedef struct packed {
 
 typedef struct packed {
   RegT data;
-  logic [31:0] addr;
-  logic [3:0] wmask;
+  logic [63:0] addr;
+  logic [7:0] wmask;
   logic isMgmt;
   logic valid;
 } SQ_UOp;
@@ -1101,8 +1101,8 @@ interface IF_Cache ();
 endinterface
 
 typedef struct packed {
-  logic [31:0] data;
-  logic [3:0] mask;
+  logic [63:0] data;
+  logic [7:0] mask;
   logic conflict;
   logic valid;
 } StFwdResult;
