@@ -1,3 +1,8 @@
+`ifndef LOADBUFFER_SV
+`define LOADBUFFER_SV
+
+`include "Include.sv"
+
 module LoadBuffer
 #(
   parameter NUM_ENTRIES=`LB_SIZE
@@ -37,7 +42,7 @@ module LoadBuffer
     SqN sqN;
     Tag tagDst;
     logic[1:0] size;
-    logic[31:0] addr;
+    logic[63:0] addr;
     logic atomic;
     logic signExtend;
     logic doNotCommit;
@@ -91,9 +96,10 @@ module LoadBuffer
           IN_uop[i].valid && IN_uop[i].isStore &&
           (!IN_uop[i].doNotCommit || IN_uop[i].loadSqN != IN_uop[h].loadSqN) &&
           IN_uop[h].addr[31:2] == IN_uop[i].addr[31:2] &&
-          (IN_uop[i].size == 2 ||
-          (IN_uop[i].size == 1 && (IN_uop[h].size > 1 || IN_uop[h].addr[1] == IN_uop[i].addr[1])) ||
-          (IN_uop[i].size == 0 && (IN_uop[h].size > 0 || IN_uop[h].addr[1:0] == IN_uop[i].addr[1:0])))
+          (IN_uop[i].size == 3 ||
+          (IN_uop[i].size == 2 && (IN_uop[h].addr[2] == IN_uop[i].addr[2])) ||
+          (IN_uop[i].size == 1 && (IN_uop[h].size > 1 || IN_uop[h].addr[2:1] == IN_uop[i].addr[2:1])) ||
+          (IN_uop[i].size == 0 && (IN_uop[h].size > 0 || IN_uop[h].addr[2:0] == IN_uop[i].addr[2:0])))
           )
             delayLoad[h] = 1;
         end
@@ -121,7 +127,7 @@ module LoadBuffer
   end
 
 
-  logic[31:0] wAddrToMatch[NUM_AGUS-1:0];
+  logic[63:0] wAddrToMatch[NUM_AGUS-1:0];
   typedef enum logic[1:0]
   {
     STORE
@@ -176,9 +182,10 @@ module LoadBuffer
       for (integer i = 0; i < NUM_ENTRIES; i=i+1) begin
         if (wAddrMatch[h][i] && entries[i].issued && IN_uop[h].isStore && isBefore[h][i] &&
         //(!IN_uop[h].doNotCommit || IN_uop[h].loadSqN != {entries[i].highLdSqN, i[$clog2(NUM_ENTRIES)-1:0]}) &&
-        (IN_uop[h].size == 2 ||
-        (IN_uop[h].size == 1 && (entries[i].size > 1 || entries[i].addr[1] == IN_uop[h].addr[1])) ||
-        (IN_uop[h].size == 0 && (entries[i].size > 0 || entries[i].addr[1:0] == IN_uop[h].addr[1:0])))
+        (IN_uop[h].size == 3 ||
+        (IN_uop[h].size == 2 && (entries[i].addr[2] == IN_uop[h].addr[2])) ||
+        (IN_uop[h].size == 1 && (entries[i].size > 1 || entries[i].addr[2:1] == IN_uop[h].addr[2:1])) ||
+        (IN_uop[h].size == 0 && (entries[i].size > 0 || entries[i].addr[2:0] == IN_uop[h].addr[2:0])))
         ) begin
           storeIsConflict[h] = 1;
         end
@@ -508,3 +515,5 @@ module LoadBuffer
   end
 
 endmodule
+
+`endif

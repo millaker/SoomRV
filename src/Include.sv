@@ -787,9 +787,9 @@ typedef struct packed {
 } PW_LD_UOp;
 
 typedef struct packed {
-  logic [31:0] data;
+  logic [63:0] data;
   logic dataValid;
-  logic [31:0] addr;
+  logic [63:0] addr;
   logic signExtend;
   logic [1:0] size;
   SqN storeSqN;
